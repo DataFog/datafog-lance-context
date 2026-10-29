@@ -152,6 +152,7 @@ export default function App() {
   const [sampleLoading, setSampleLoading] = useState(true);
   const [sampleError, setSampleError] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  const stageElement = useRef<HTMLElement>(null);
   const sampleController = useRef<AbortController | null>(null);
   const controller = useRef<AbortController | null>(null);
   const generation = useRef(0);
@@ -191,7 +192,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' });
+    stageElement.current?.scrollTo({ top: 0, behavior: 'auto' });
   }, [step]);
 
   function cacheSource(content: string, name: string): boolean {
@@ -419,7 +420,7 @@ export default function App() {
 
     <input ref={fileInput} type="file" accept=".jsonl,.ndjson,application/x-ndjson,text/plain" className="visually-hidden" aria-label="Choose a conversation JSONL file" onChange={event => { const file = event.target.files?.[0]; if (file) void loadFile(file); }} />
 
-    <main className="stage" key={step === 4 ? 'download' : step === 0 ? 'upload' : 'review'}>
+    <main ref={stageElement} className="stage" tabIndex={0} aria-label="Demo content" key={step === 4 ? 'download' : step === 0 ? 'upload' : 'review'}>
       {step === 0 && <section className="upload" {...dropProps}>
         <h1>Redacting PII<br /><span>in Training Data</span></h1>
         <div className={`sample-card ${dragging ? 'dragging' : ''}`} aria-label="Preloaded sample file" aria-busy={sampleLoading}>

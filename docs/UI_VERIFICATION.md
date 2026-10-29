@@ -1,5 +1,23 @@
 # UI verification
 
+## Mobile controls regression
+
+Checked October 29, 2026 after the user's iPhone Chrome screenshot showed both sticky bars missing. The exact device paint failure was not reproduced in desktop emulation. A related overflow was measurable: at a 365 × 618 CSS viewport, the original source page was 668px high and allowed 50px of document scrolling. The revised page is 618px high with no document scrolling.
+
+The layout now uses three grid rows within `100svh`, with an independently scrolling main area. Header and action controls have reserved rows; they no longer depend on sticky positioning or backdrop filters. Step changes reset the main area's scroll position immediately. [WebKit documents `svh` as the smallest possible viewport height](https://webkit.org/blog/12445/new-webkit-features-in-safari-15-4/).
+
+Checks at 321 × 568, 365 × 618, 672 × 327 landscape, and 1309 × 818 desktop used read-only DOM probes to confirm:
+
+- The entire primary button rectangle is inside the visual viewport, and hit testing at its center reaches the button.
+- The header retains its height and the document does not overflow the viewport.
+- Long review content can scroll 1,686px while both control rows remain visible; the next step resets main scrolling to zero.
+- The real pipeline still produces 8 examples and 17 replacements. Desktop comparison displays 8 original and 8 cleaned conversation panes.
+- Rules remain usable on the short landscape viewport. ZIP detection and the public-support exception were toggled and restored to their defaults.
+
+These are desktop browser viewport checks, not physical iPhone verification.
+
+## Earlier workflow checks
+
 The preloaded-source revision was checked locally on October 29, 2026:
 
 - A fresh visit loads the public sample into memory and shows its filename, JSONL type, 8 conversations, and 16 messages.
