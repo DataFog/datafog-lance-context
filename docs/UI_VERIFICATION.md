@@ -8,7 +8,7 @@ The preloaded-source revision was checked locally on October 29, 2026:
 - Download sample saves the file and browser copy; clearing and reloading removes that saved copy without removing the public sample.
 - At a measured 321px viewport, the source screen has no horizontal page overflow and its controls are 44–52px high.
 
-The heading remains unchanged pending the user's requested wording approval.
+The user-approved heading is “Redacting PII in Training Data.”
 
 Checked October 29, 2026 in the Codex in-app browser. Widths below are the measured CSS viewport widths, not device-model claims.
 

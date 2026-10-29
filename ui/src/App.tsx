@@ -420,7 +420,7 @@ export default function App() {
 
     <main className="stage" key={step === 4 ? 'download' : step === 0 ? 'upload' : 'review'}>
       {step === 0 && <section className="upload" {...dropProps}>
-        <h1>Conversations in.<br /><span>Training data out.</span></h1>
+        <h1>Redacting PII<br /><span>in Training Data</span></h1>
         <div className={`sample-card ${dragging ? 'dragging' : ''}`} aria-label="Preloaded sample file" aria-busy={sampleLoading}>
           <div className="sample-heading">
             <span className="file-badge"><Icon name="file" size={26} /></span>
