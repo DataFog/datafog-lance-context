@@ -5,7 +5,7 @@ Map the states this demo can actually reach. Keep this table aligned with UI/API
 | State | Visible result | Allowed next actions | Recovery/proof |
 | --- | --- | --- | --- |
 | Source loading | Support conversations sample card with a loading state | Wait or upload another JSONL | Fetch static sample bytes into memory; do not create a Lance dataset or write browser storage |
-| Source ready | Support conversations, actual filename, JSONL format, conversation and message counts | View original, download sample, upload another JSONL, drop file or sample URL | View original imports the shown sample into real Lance |
+| Source ready | Support conversations, actual filename, JSONL format, conversation and message counts, Ready to review | View original; secondary upload; File options for optional source saving/cache clearing; drop file or sample URL | View original imports the shown sample into real Lance; no source download is required |
 | Saved browser file | Separate filename and saved date for a cached custom source | Load saved file, remove saved file, continue with public sample | Public sample stays the default; cache stores source text only; importing creates a fresh real backend context |
 | Sample unavailable | Actionable sample-loading error | Retry or upload another JSONL | No import or successful preload claimed after a fetch failure |
 | Fetching sample | Explicit sample download in progress | Wait | Successful download also saves its source in browser storage |

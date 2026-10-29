@@ -50,6 +50,7 @@ function Icon({ name, size = 18 }: { name: string; size?: number }) {
     restart: <><path d="M4 12a8 8 0 1 0 2.4-5.7" /><path d="M4 4v4h4" /></>,
     sliders: <><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" /></>,
     back: <path d="m15 6-6 6 6 6" />,
+    more: <><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></>,
   };
   return <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round">{paths[name] || paths.file}</svg>;
 }
@@ -434,11 +435,16 @@ export default function App() {
           </dl>}
           {sampleError && <p className="field-error" role="alert">Sample unavailable. Retry or upload another JSONL.</p>}
           {(sampleLoading || busy) && <p className="sample-status" role="status"><span className="spinner" />{stage === 'importing' ? `Importing ${filename || SAMPLE_NAME}` : 'Loading file'}</p>}
-          <div className="sample-actions">
-            <a href={SAMPLE_PATH} download={SAMPLE_NAME} draggable className="outline-button" aria-disabled={locked} onClick={event => { event.preventDefault(); void downloadSample(); }}><Icon name="download" size={18} />Download sample</a>
-            {savedSample && <button className="icon-button" aria-label="Clear saved copy" disabled={locked} onClick={clearSaved}><Icon name="trash" size={19} /></button>}
+          <div className="sample-footer">
+            <span className="sample-ready" role="status">{sample && !sampleLoading && !sampleError && !busy ? 'Ready to review' : ''}</span>
+            <details className="file-options">
+              <summary aria-label="File options" title="File options"><Icon name="more" size={20} /></summary>
+              <div className="file-menu">
+                <button disabled={locked} onClick={event => { event.currentTarget.closest('details')?.removeAttribute('open'); void downloadSample(); }}><Icon name="download" size={18} />Save source file</button>
+                {savedSample && <button disabled={locked} onClick={event => { event.currentTarget.closest('details')?.removeAttribute('open'); clearSaved(); }}><Icon name="trash" size={18} />Clear saved copy</button>}
+              </div>
+            </details>
           </div>
-          {savedSample && <span className="sample-status">Saved in browser</span>}
         </div>
         {savedInput && !savedSample && <div className="source-list">
           <div className="source-row saved">
