@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "datafog-lance-context-generator",
+  "main": "cloudflare/generator.js",
+  "account_id": "5af65814b462b37cf1e5bba7d499c3a5",
+  "compatibility_date": "2026-10-29",
+  "workers_dev": true,
+  "preview_urls": false,
+  "ai": {"binding": "AI"},
+  "assets": {"directory": "data/public", "binding": "ASSETS", "run_worker_first": true},
+  "observability": {"enabled": false}
+}

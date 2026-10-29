@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "datafog-lance-context"
+version = "0.1.0"
+description = "Review and release privacy-transformed training exports with real Lance and DataFog Core"
+requires-python = ">=3.11,<3.14"
+license = "MIT"
+dependencies = [
+  "datafog-core==0.3.1",
+  "lance-context==0.6.5",
+  "fastapi==0.162.0",
+  "uvicorn==0.54.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest==9.2.0", "httpx==0.28.1"]
+
+[project.scripts]
+datafog-lance = "datafog_lance_context.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/datafog_lance_context"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+

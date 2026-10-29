@@ -1,0 +1,154 @@
+{
+  "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+  "generated_at": "2026-10-29T19:08:11.440Z",
+  "result": {
+    "id": "chatcmpl-1c05fe4f-3bb3-4870-a46d-0fbaa0d8b984",
+    "object": "chat.completion",
+    "created": 1793300869,
+    "model": "@cf/meta/llama-3.3-70b-json",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\"conversations\": [{\"scenario\": \"delivery\", \"messages\": [{\"role\": \"user\", \"content\": \"Hi, my parcel from Northstar Goods is delayed. Can you please update me on the status? My contact details are {{EMAIL}} and {{PHONE}}.\"}, {\"role\": \"assistant\", \"content\": \"Thank you for reaching out. I've checked on the status of your parcel, and it should arrive within the next 3-5 business days. You will receive a confirmation email to {{EMAIL}} with the tracking details.\"}]}, {\"scenario\": \"refund\", \"messages\": [{\"role\": \"user\", \"content\": \"I was charged twice for my order {{ORDER}}. Can I get a refund? My payment method is {{CARD}} and the transaction date was {{DATE}}.\"}, {\"role\": \"assistant\", \"content\": \"Sorry to hear that you were charged twice. I've processed a refund for the duplicate charge. You should see the refund on your {{CARD}} within the next 5-7 business days.\"}]}, {\"scenario\": \"account-recovery\", \"messages\": [{\"role\": \"user\", \"content\": \"I forgot my password and need to recover my account. My {{SSN}} is on file, and I can be reached at {{EMAIL}}.\"}, {\"role\": \"assistant\", \"content\": \"To recover your account, please click on the forgot password link on our website and follow the prompts. If you need further assistance, we'll be in touch via {{EMAIL}}.\"}]}, {\"scenario\": \"unicode\", \"messages\": [{\"role\": \"user\", \"content\": \"Hola, I have a question about international delivery to a caf\\u00e9. Can you please call me at {{PHONE}} or email {{EMAIL}}? I'd like to know if it will arrive ma\\u00f1ana 🌞.\"}, {\"role\": \"assistant\", \"content\": \"Thank you for reaching out. I've checked on the delivery details, and we can ship to the caf\\u00e9. I'll send you a confirmation email with the tracking details to {{EMAIL}}.\"}]}, {\"scenario\": \"connection\", \"messages\": [{\"role\": \"user\", \"content\": \"I'm trying to checkout, but the connection keeps failing from my {{IP}} address. My order number is {{ORDER}} and the date is {{DATE}}.\"}, {\"role\": \"assistant\", \"content\": \"Sorry to hear that you're experiencing connection issues. Please try clearing your browser cache and cookies, then attempt to checkout again. If you're still having trouble, we'll be happy to assist you further.\"}]}, {\"scenario\": \"support-contact\", \"messages\": [{\"role\": \"user\", \"content\": \"Where should I send my receipt? You can reach me at {{EMAIL}}.\"}, {\"role\": \"assistant\", \"content\": \"Thank you for offering to send your receipt. You can send it to our public support email {{PUBLIC_SUPPORT_EMAIL}}. I'll also make sure to follow up with you directly to {{EMAIL}}.\"}]}, {\"scenario\": \"clean-negative\", \"messages\": [{\"role\": \"user\", \"content\": \"I'd like to return my order {{ORDER}}. The return date is {{DATE}}.\"}, {\"role\": \"assistant\", \"content\": \"Sorry to hear that you need to return your order. I've processed the return, and you should receive a confirmation email with the return details. Please allow 5-7 business days for the return to be processed.\"}]}, {\"scenario\": \"callback\", \"messages\": [{\"role\": \"user\", \"content\": \"Can I get a callback regarding my issue? My contact details are {{PHONE}} and {{EMAIL}}.\"}, {\"role\": \"assistant\", \"content\": \"Thank you for requesting a callback. I've scheduled a callback to {{PHONE}}. If we're unable to reach you, we'll send a follow-up email to {{EMAIL}}.\"}]}]}",
+          "refusal": null,
+          "annotations": null,
+          "audio": null,
+          "function_call": null,
+          "reasoning": null
+        },
+        "logprobs": null,
+        "finish_reason": "stop",
+        "stop_reason": null,
+        "token_ids": null,
+        "routed_experts": null
+      }
+    ],
+    "service_tier": null,
+    "usage": {
+      "prompt_tokens": 554,
+      "completion_tokens": 825,
+      "total_tokens": 1379,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "neurons": 183.73829650878906
+    },
+    "prompt_logprobs": null,
+    "prompt_token_ids": null,
+    "prompt_text": null,
+    "kv_transfer_params": null,
+    "ec_transfer_params": null,
+    "metrics": null,
+    "response": {
+      "conversations": [
+        {
+          "scenario": "delivery",
+          "messages": [
+            {
+              "role": "user",
+              "content": "Hi, my parcel from Northstar Goods is delayed. Can you please update me on the status? My contact details are {{EMAIL}} and {{PHONE}}."
+            },
+            {
+              "role": "assistant",
+              "content": "Thank you for reaching out. I've checked on the status of your parcel, and it should arrive within the next 3-5 business days. You will receive a confirmation email to {{EMAIL}} with the tracking details."
+            }
+          ]
+        },
+        {
+          "scenario": "refund",
+          "messages": [
+            {
+              "role": "user",
+              "content": "I was charged twice for my order {{ORDER}}. Can I get a refund? My payment method is {{CARD}} and the transaction date was {{DATE}}."
+            },
+            {
+              "role": "assistant",
+              "content": "Sorry to hear that you were charged twice. I've processed a refund for the duplicate charge. You should see the refund on your {{CARD}} within the next 5-7 business days."
+            }
+          ]
+        },
+        {
+          "scenario": "account-recovery",
+          "messages": [
+            {
+              "role": "user",
+              "content": "I forgot my password and need to recover my account. My {{SSN}} is on file, and I can be reached at {{EMAIL}}."
+            },
+            {
+              "role": "assistant",
+              "content": "To recover your account, please click on the forgot password link on our website and follow the prompts. If you need further assistance, we'll be in touch via {{EMAIL}}."
+            }
+          ]
+        },
+        {
+          "scenario": "unicode",
+          "messages": [
+            {
+              "role": "user",
+              "content": "Hola, I have a question about international delivery to a café. Can you please call me at {{PHONE}} or email {{EMAIL}}? I'd like to know if it will arrive mañana 🌞."
+            },
+            {
+              "role": "assistant",
+              "content": "Thank you for reaching out. I've checked on the delivery details, and we can ship to the café. I'll send you a confirmation email with the tracking details to {{EMAIL}}."
+            }
+          ]
+        },
+        {
+          "scenario": "connection",
+          "messages": [
+            {
+              "role": "user",
+              "content": "I'm trying to checkout, but the connection keeps failing from my {{IP}} address. My order number is {{ORDER}} and the date is {{DATE}}."
+            },
+            {
+              "role": "assistant",
+              "content": "Sorry to hear that you're experiencing connection issues. Please try clearing your browser cache and cookies, then attempt to checkout again. If you're still having trouble, we'll be happy to assist you further."
+            }
+          ]
+        },
+        {
+          "scenario": "support-contact",
+          "messages": [
+            {
+              "role": "user",
+              "content": "Where should I send my receipt? You can reach me at {{EMAIL}}."
+            },
+            {
+              "role": "assistant",
+              "content": "Thank you for offering to send your receipt. You can send it to our public support email {{PUBLIC_SUPPORT_EMAIL}}. I'll also make sure to follow up with you directly to {{EMAIL}}."
+            }
+          ]
+        },
+        {
+          "scenario": "clean-negative",
+          "messages": [
+            {
+              "role": "user",
+              "content": "I'd like to return my order {{ORDER}}. The return date is {{DATE}}."
+            },
+            {
+              "role": "assistant",
+              "content": "Sorry to hear that you need to return your order. I've processed the return, and you should receive a confirmation email with the return details. Please allow 5-7 business days for the return to be processed."
+            }
+          ]
+        },
+        {
+          "scenario": "callback",
+          "messages": [
+            {
+              "role": "user",
+              "content": "Can I get a callback regarding my issue? My contact details are {{PHONE}} and {{EMAIL}}."
+            },
+            {
+              "role": "assistant",
+              "content": "Thank you for requesting a callback. I've scheduled a callback to {{PHONE}}. If we're unable to reach you, we'll send a follow-up email to {{EMAIL}}."
+            }
+          ]
+        }
+      ]
+    },
+    "tool_calls": []
+  }
+}

@@ -1,0 +1,273 @@
+{
+  "synthetic": true,
+  "note": "Known injected test cases, not measured real-world accuracy. Date/IP handling and the public support exception depend on policy.",
+  "cases": [
+    {
+      "scenario": "delivery",
+      "session_id": "session/customer-001@example.com",
+      "message_values": [
+        {
+          "path": "/messages/0/content",
+          "placeholder": "EMAIL",
+          "value": "customer-001@example.com",
+          "entity_type": "EMAIL",
+          "public_exception": false
+        },
+        {
+          "path": "/messages/0/content",
+          "placeholder": "PHONE",
+          "value": "(202) 555-0101",
+          "entity_type": "PHONE",
+          "public_exception": false
+        },
+        {
+          "path": "/messages/1/content",
+          "placeholder": "EMAIL",
+          "value": "customer-001@example.com",
+          "entity_type": "EMAIL",
+          "public_exception": false
+        }
+      ],
+      "metadata_canaries": [
+        "session/customer-001@example.com"
+      ],
+      "negative_values": [
+        "NS-00001",
+        "2026-11-05"
+      ]
+    },
+    {
+      "scenario": "refund",
+      "session_id": "session-refund",
+      "message_values": [
+        {
+          "path": "/messages/0/content",
+          "placeholder": "CARD",
+          "value": "4111 1111 1111 1111",
+          "entity_type": "CREDIT_CARD",
+          "public_exception": false
+        },
+        {
+          "path": "/messages/0/content",
+          "placeholder": "DATE",
+          "value": "2026-11-05",
+          "entity_type": "DATE",
+          "public_exception": false
+        },
+        {
+          "path": "/messages/0/content",
+          "placeholder": "ORDER",
+          "value": "NS-00002",
+          "entity_type": null,
+          "public_exception": false
+        },
+        {
+          "path": "/messages/1/content",
+          "placeholder": "CARD",
+          "value": "4111 1111 1111 1111",
+          "entity_type": "CREDIT_CARD",
+          "public_exception": false
+        }
+      ],
+      "metadata_canaries": [],
+      "negative_values": [
+        "NS-00002",
+        "2026-11-05"
+      ]
+    },
+    {
+      "scenario": "account-recovery",
+      "session_id": "session-account-recovery",
+      "message_values": [
+        {
+          "path": "/messages/0/content",
+          "placeholder": "EMAIL",
+          "value": "customer-003@example.com",
+          "entity_type": "EMAIL",
+          "public_exception": false
+        },
+        {
+          "path": "/messages/0/content",
+          "placeholder": "SSN",
+          "value": "123-45-6789",
+          "entity_type": "SSN",
+          "public_exception": false
+        },
+        {
+          "path": "/messages/1/content",
+          "placeholder": "EMAIL",
+          "value": "customer-003@example.com",
+          "entity_type": "EMAIL",
+          "public_exception": false
+        }
+      ],
+      "metadata_canaries": [],
+      "negative_values": [
+        "NS-00003",
+        "2026-11-05"
+      ]
+    },
+    {
+      "scenario": "unicode",
+      "session_id": "session-unicode",
+      "message_values": [
+        {
+          "path": "/messages/0/content",
+          "placeholder": "EMAIL",
+          "value": "customer-004@example.com",
+          "entity_type": "EMAIL",
+          "public_exception": false
+        },
+        {
+          "path": "/messages/0/content",
+          "placeholder": "PHONE",
+          "value": "(202) 555-0104",
+          "entity_type": "PHONE",
+          "public_exception": false
+        },
+        {
+          "path": "/messages/1/content",
+          "placeholder": "EMAIL",
+          "value": "customer-004@example.com",
+          "entity_type": "EMAIL",
+          "public_exception": false
+        }
+      ],
+      "metadata_canaries": [
+        "ticket/customer-004@example.com"
+      ],
+      "negative_values": [
+        "NS-00004",
+        "2026-11-05"
+      ]
+    },
+    {
+      "scenario": "connection",
+      "session_id": "session-connection",
+      "message_values": [
+        {
+          "path": "/messages/0/content",
+          "placeholder": "IP",
+          "value": "192.0.2.44",
+          "entity_type": "IP_ADDRESS",
+          "public_exception": false
+        },
+        {
+          "path": "/messages/0/content",
+          "placeholder": "DATE",
+          "value": "2026-11-05",
+          "entity_type": "DATE",
+          "public_exception": false
+        },
+        {
+          "path": "/messages/0/content",
+          "placeholder": "ORDER",
+          "value": "NS-00005",
+          "entity_type": null,
+          "public_exception": false
+        }
+      ],
+      "metadata_canaries": [],
+      "negative_values": [
+        "NS-00005",
+        "2026-11-05"
+      ]
+    },
+    {
+      "scenario": "support-contact",
+      "session_id": "session-support-contact",
+      "message_values": [
+        {
+          "path": "/messages/0/content",
+          "placeholder": "EMAIL",
+          "value": "customer-006@example.com",
+          "entity_type": "EMAIL",
+          "public_exception": false
+        },
+        {
+          "path": "/messages/1/content",
+          "placeholder": "EMAIL",
+          "value": "customer-006@example.com",
+          "entity_type": "EMAIL",
+          "public_exception": false
+        },
+        {
+          "path": "/messages/1/content",
+          "placeholder": "PUBLIC_SUPPORT_EMAIL",
+          "value": "support@example.com",
+          "entity_type": "EMAIL",
+          "public_exception": true
+        }
+      ],
+      "metadata_canaries": [],
+      "negative_values": [
+        "NS-00006",
+        "2026-11-05"
+      ]
+    },
+    {
+      "scenario": "clean-negative",
+      "session_id": "session-clean-negative",
+      "message_values": [
+        {
+          "path": "/messages/0/content",
+          "placeholder": "DATE",
+          "value": "2026-11-05",
+          "entity_type": "DATE",
+          "public_exception": false
+        },
+        {
+          "path": "/messages/0/content",
+          "placeholder": "ORDER",
+          "value": "NS-00007",
+          "entity_type": null,
+          "public_exception": false
+        }
+      ],
+      "metadata_canaries": [],
+      "negative_values": [
+        "NS-00007",
+        "2026-11-05"
+      ]
+    },
+    {
+      "scenario": "callback",
+      "session_id": "session-callback",
+      "message_values": [
+        {
+          "path": "/messages/0/content",
+          "placeholder": "EMAIL",
+          "value": "customer-008@example.com",
+          "entity_type": "EMAIL",
+          "public_exception": false
+        },
+        {
+          "path": "/messages/0/content",
+          "placeholder": "PHONE",
+          "value": "(202) 555-0108",
+          "entity_type": "PHONE",
+          "public_exception": false
+        },
+        {
+          "path": "/messages/1/content",
+          "placeholder": "EMAIL",
+          "value": "customer-008@example.com",
+          "entity_type": "EMAIL",
+          "public_exception": false
+        },
+        {
+          "path": "/messages/1/content",
+          "placeholder": "PHONE",
+          "value": "(202) 555-0108",
+          "entity_type": "PHONE",
+          "public_exception": false
+        }
+      ],
+      "metadata_canaries": [],
+      "negative_values": [
+        "NS-00008",
+        "2026-11-05"
+      ]
+    }
+  ]
+}

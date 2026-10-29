@@ -1,0 +1,21 @@
+{
+  "synthetic": true,
+  "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+  "generated_at": "2026-10-29T19:08:11.440Z",
+  "assembled_at": "2026-10-29T19:08:18.370309+00:00",
+  "prompt_version": "v1",
+  "prompt_sha256": "164bbadaa0059181d1a646f067a75c66c55a7de9969e61b06209bf44c0408ac1",
+  "model_response_sha256": "f1257e2c833573097028e5d462f17c1c2c1961e37f67aa7a4f5ed026b07595e6",
+  "dataset_sha256": "ef80f21d4a3982fe1267673c3a0c563487b4e4d9bb9eaed864aa44be7b7b752a",
+  "conversation_count": 8,
+  "message_count": 16,
+  "generation": "Workers AI wrote placeholder dialogue; deterministic injector supplied labeled test-only values.",
+  "fixture_notes": [
+    "example.com email addresses are reserved examples",
+    "202-555-0100 through 202-555-0199 are fictional telephone values",
+    "4111 1111 1111 1111 is a payment-test card",
+    "123-45-6789 is a public test-pattern identity number with no link to a person",
+    "192.0.2.44 is a documentation-only IP address",
+    "Free-text person names are outside the demo detector scope"
+  ]
+}
