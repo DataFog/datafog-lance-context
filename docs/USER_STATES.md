@@ -5,7 +5,7 @@ Map the states this demo can actually reach. Keep this table aligned with UI/API
 | State | Visible result | Allowed next actions | Recovery/proof |
 | --- | --- | --- | --- |
 | Connecting | Backend health and actual dependency versions loading | Read sample instructions | Retry if offline/cold start; do not claim engine ready |
-| Empty | Drop zone, sample link, synthetic-data notice | Load published sample, drop file, choose file, paste sample URL | Download remains static and public |
+| Empty | Drop zone and sample controls | Load published sample, drop file, choose file, paste sample URL | Download remains static and public |
 | Saved browser file | Filename and saved date for a cached synthetic source | Load saved file, download sample, remove saved file | Cache stores source text only; importing creates a fresh real backend context |
 | Fetching sample | Sample download in progress | Wait or choose local file | Fetch error offers retry/direct download |
 | Importing | JSONL validation and real Lance import | Wait | Invalidates no completed release for the new input |

@@ -79,7 +79,7 @@ Raw input is visible in the browser review for your current opaque session. It i
 The Python backend uses published wheels, pinned in `pyproject.toml` and `uv.lock`:
 
 - `lance-context==0.6.5`
-- `datafog-core==0.3.1`
+- `datafog-core==0.5.0b3` (the Python package name for 0.5.0-beta.3)
 
 **Why the Lance pin:** an integration probe on 0.6.7 found that adding records then exporting at its reported base version returned zero examples, while an unpinned read saw the new records. The tested 0.6.5 package correctly exports the imported rows at an explicit version. This demo does not patch upstream or silently drop snapshot pinning.
 

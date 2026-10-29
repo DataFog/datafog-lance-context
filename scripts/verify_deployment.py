@@ -7,6 +7,7 @@ import hashlib
 import io
 import json
 from pathlib import Path
+import tomllib
 import urllib.error
 import urllib.request
 import zipfile
@@ -43,6 +44,10 @@ def main():
     assert status == 200, f'Engine is not ready: HTTP {status}; retry after container provisioning'
     health = json.loads(health)
     assert health['capabilities']['real_lance_context'] and health['capabilities']['real_datafog_core']
+    dependencies = tomllib.loads((ROOT / 'pyproject.toml').read_text())['project']['dependencies']
+    for package, field in [('datafog-core', 'datafog_core'), ('lance-context', 'lance_context')]:
+        expected = next(item.split('==', 1)[1] for item in dependencies if item.startswith(package + '=='))
+        assert health['versions'][field] == expected, f'Live {package} does not match the source pin; the previous image may still be running'
     status, _, dataset = request(base, '/api/datasets', {'content': sample.decode(), 'filename': 'support-conversations-v1.jsonl'})
     assert status == 200, f'Import returned {status}'
     dataset = json.loads(dataset)

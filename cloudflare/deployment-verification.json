@@ -1,0 +1,72 @@
+{
+  "verified_at_utc": "2026-10-29T19:39:43.930631+00:00",
+  "base_url": "https://datafog-lance-context.sid-5af.workers.dev",
+  "sample_url": "https://datafog-lance-context.sid-5af.workers.dev/samples/support-conversations-v1.jsonl",
+  "independent_sample_url": "https://datafog-lance-context-generator.sid-5af.workers.dev/samples/support-conversations-v1.jsonl",
+  "sample_sha256": "ef80f21d4a3982fe1267673c3a0c563487b4e4d9bb9eaed864aa44be7b7b752a",
+  "real_versions": {
+    "lance_context": "0.6.5",
+    "datafog_core": "0.5.0b3",
+    "adapter": "0.1.0"
+  },
+  "conversation_count": 8,
+  "message_count": 16,
+  "replacements": 17,
+  "examples_changed": 6,
+  "seeded_values_checked_absent": 12,
+  "checks": {
+    "public_sample_matches_repository": true,
+    "sample_ndjson_attachment_cors": true,
+    "real_dependencies_reported": true,
+    "training_hash_matches_receipt": true,
+    "allowed_values_preserved": true,
+    "blocked_download_rejected": true,
+    "invalid_upload_safe": true,
+    "live_versions_match_source_pins": true,
+    "native_beta_full_pipeline_passed": true,
+    "target_image_active": true
+  },
+  "container_application_id": "a03fb231-8eff-492a-a231-a6a8eb3f2223",
+  "container_image_digest": "sha256:d0c7d7acd03a2fbfef13cacd4ec35ecdd91ac0bd09ba84aea609c84cee1196a2",
+  "verification_command": "python3 scripts/verify_deployment.py",
+  "backend_source_hashes": {
+    "src/datafog_lance_context/api.py": "71b5f3552fab00d231dc74eb48f70bb328e5352ebfc314f0179faca28e68d80e",
+    "src/datafog_lance_context/pipeline.py": "93a15e5b826207b53b90f9852461067780214dc4a77ebb1f84aed37e2d1dbf91",
+    "uv.lock": "e07ace2e0a763946bf30ee4539c08a5641a5d84eecdfb2ff20118fe4da25c896"
+  },
+  "interpretation": "Known synthetic fixture checks; not a claim of real-world PII detection accuracy. Final frontend assets were unchanged during this native-library upgrade.",
+  "final_ui_deployed_at_utc": "2026-10-29T19:33:31.365841+00:00",
+  "worker_version_id": "16b36804-39e2-4746-aa6b-c2b7c3b7fc06",
+  "frontend_asset_hashes": {
+    "assets/index-DSQgu37o.js": "93ac2e978649fe9bae4450dd2e478ef2435ce57a9887f3ea5bd12c58dd0d7fef",
+    "assets/index-Cwtn2Cxe.css": "845e5c650ceeb2ee95d934713e5b39fa375b4e2e719a39e78c83c603a3371760"
+  },
+  "worker_source_sha256": "e72b978233512d12d0f1d9922543eb883015904f501d768a902c726a4c5876ae",
+  "frontend_source_hashes": {
+    "ui/src/App.tsx": "ec5ae3fd645e1689b1b8809c88e2e66a6698d6930f50c72980f9fa2a2b6b10bc",
+    "ui/src/main.tsx": "1cb386ed76d017f15e6fde50a4c0ab90184321465944944f078edb7132ec7a4e",
+    "ui/src/styles.css": "499349b65ff4e6e37b7f34dca0ee2b5a0a9a1d68cc5e1eba338855d1577a7eef"
+  },
+  "final_ui_delivery_checks": {
+    "html_points_to_final_assets": true,
+    "served_assets_match_build": true,
+    "public_sample_unchanged": true,
+    "native_health_ready": true,
+    "api_no_store": true
+  },
+  "container_application_version": 2,
+  "container_health": {
+    "errors": [],
+    "instances": {
+      "active": 1,
+      "assigned": 0,
+      "healthy": 0,
+      "stopped": 0,
+      "failed": 0,
+      "scheduling": 0,
+      "starting": 0
+    }
+  },
+  "verification_script_sha256": "949b0f9869446719b540259ba498fc2c9441dd3c70d777121fbad717c93c654c",
+  "source_cleanup_note": "Removed a trailing blank line after deployment; a fresh build produced identical served assets."
+}

@@ -9,7 +9,7 @@ description = "Review and release privacy-transformed training exports with real
 requires-python = ">=3.11,<3.14"
 license = "MIT"
 dependencies = [
-  "datafog-core==0.3.1",
+  "datafog-core==0.5.0b3",
   "lance-context==0.6.5",
   "fastapi==0.162.0",
   "uvicorn==0.54.0",

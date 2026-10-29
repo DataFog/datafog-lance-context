@@ -47,7 +47,7 @@ def test_real_snapshot_export_transform_and_safe_bundle(store):
     run = store.run_export(dataset["dataset_id"])
     assert run["status"] == "ready"
     assert dataset["versions"]["lance_context"] == "0.6.5"
-    assert dataset["versions"]["datafog_core"] == "0.3.1"
+    assert dataset["versions"]["datafog_core"] == "0.5.0b3"
     assert run["summary"]["messages"] == 2
     assert run["summary"]["replacements"] == 2
     raw, clean = run["examples"][0]["raw"], run["examples"][0]["clean"]
@@ -137,7 +137,7 @@ def test_api_health_downloads_blocking_and_expiry(store):
     with TestClient(create_app(store)) as client:
         health = client.get("/api/health").json()
         assert health["capabilities"]["real_lance_context"] is True
-        assert health["versions"]["datafog_core"] == "0.3.1"
+        assert health["versions"]["datafog_core"] == "0.5.0b3"
         invalid = client.post("/api/datasets", json={"content": {"secret": "raw-secret@example.com"}})
         assert invalid.status_code == 422
         assert "raw-secret" not in invalid.text

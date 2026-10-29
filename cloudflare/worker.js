@@ -27,6 +27,10 @@ export function publicSampleHeaders(pathname, originalHeaders = {}) {
   return headers;
 }
 
+function unavailable() {
+  return Response.json({error: {code: 'ENGINE_UNAVAILABLE', message: 'The demo engine is starting or temporarily unavailable. Please retry.'}}, {status: 503, headers: {'Cache-Control': 'no-store', 'Retry-After': '5'}});
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -42,13 +46,17 @@ export default {
         const bounded = await boundApiRequest(request);
         if (bounded instanceof Response) return bounded;
         const response = await env.DEMO.getByName(env.CONTAINER_REVISION || 'demo-v1').fetch(bounded);
+        if (response.status === 503) {
+          await response.body?.cancel();
+          return unavailable();
+        }
         const headers = new Headers(response.headers);
         headers.set('Cache-Control', 'no-store');
         headers.set('X-Content-Type-Options', 'nosniff');
         headers.set('Referrer-Policy', 'no-referrer');
         return new Response(response.body, {status: response.status, headers});
       } catch {
-        return Response.json({error: {code: 'ENGINE_UNAVAILABLE', message: 'The demo engine is starting or temporarily unavailable. Please retry.'}}, {status: 503, headers: {'Cache-Control': 'no-store', 'Retry-After': '5'}});
+        return unavailable();
       }
     }
     return env.ASSETS.fetch(request);

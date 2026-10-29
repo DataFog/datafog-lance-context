@@ -34,7 +34,7 @@ All API routes are same-origin; Worker sends `/api/*` to the Python container. S
 - GET `/api/runs/{run_id}/training`: cleaned JSONL only if ready.
 - Missing/expired IDs: 404 with safe error. Validation errors: 422 safe structured detail without raw text. Unexpected failures: safe error codes.
 
-State is temporary per container; UI must recover from expired IDs. A container sleep may clear state. Dataset/run IDs are unguessable. Public demo UI explicitly requests synthetic data only. Never send uploaded data to Workers AI: it generates the published sample only. Downloads and inference endpoints are separate.
+State is temporary per container; UI must recover from expired IDs. A container sleep may clear state. Dataset/run IDs are unguessable. The published sample is synthetic and its provenance is recorded in the repository. The user requested removal of secondary disclosure copy from the UI. Never send uploaded data to Workers AI: it generates the published sample only. Downloads and inference endpoints are separate.
 
 User-requested browser persistence: a Download sample action triggers a normal local download and remembers the sample source in localStorage. Imported local sources are also remembered. On a later visit, show the saved source and offer to reimport it into a new real context. A trash/remove action clears the saved browser copy and current UI; it does not claim to delete the file from OS Downloads. Catch storage quota/unavailable errors and allow session-only processing. Never cache backend IDs or old ready results as current state.
 
