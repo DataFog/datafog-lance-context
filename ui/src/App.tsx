@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react';
 
 type Stage = 'empty' | 'fetching' | 'importing' | 'imported' | 'running' | 'ready' | 'stale' | 'blocked' | 'expired' | 'error';
-type Tab = 'conversations' | 'metadata' | 'receipt';
-type View = 'raw' | 'clean' | 'compare';
+type Side = 'raw' | 'clean';
 type Message = { role: string; content: string };
 type Conversation = { session_id: string; tenant?: string; source?: string; external_id?: string; messages: Message[]; metadata?: Record<string, unknown> };
 type Versions = { lance_context?: string; datafog_core?: string; [key: string]: unknown };
@@ -19,44 +18,39 @@ type Run = {
 };
 type Notice = { message: string; type: 'error' | 'info' } | null;
 type SavedInput = { content: string; filename: string; savedAt: string };
+type Mark = 'plain' | 'hit' | 'struck' | 'token';
 
 const SAMPLE_PATH = '/samples/support-conversations-v1.jsonl';
+const SAMPLE_NAME = 'support-conversations-v1.jsonl';
 const PUBLIC_SAMPLE = `https://datafog-lance-context.sid-5af.workers.dev${SAMPLE_PATH}`;
 const GENERATOR_SAMPLE = `https://datafog-lance-context-generator.sid-5af.workers.dev${SAMPLE_PATH}`;
 const SOURCE_CACHE_KEY = 'datafog-lance-context:synthetic-source:v1';
 const MAX_INPUT_BYTES = 2 * 1024 * 1024;
+const STEPS = ['Upload', 'Original', 'DataFog', 'Cleaned', 'Download'] as const;
 const entityOptions = [
-  { id: 'EMAIL', label: 'Email addresses', example: 'customer@example.com', icon: 'mail' },
-  { id: 'PHONE', label: 'Phone numbers', example: 'Personal contact numbers', icon: 'phone' },
-  { id: 'SSN', label: 'Social Security numbers', example: 'US identifiers', icon: 'shield' },
-  { id: 'CREDIT_CARD', label: 'Credit card numbers', example: 'Validated number patterns', icon: 'card' },
+  { id: 'EMAIL', label: 'Email' }, { id: 'PHONE', label: 'Phone' }, { id: 'SSN', label: 'SSN' }, { id: 'CREDIT_CARD', label: 'Card' },
+  { id: 'IP_ADDRESS', label: 'IP' }, { id: 'DATE', label: 'Date' }, { id: 'ZIP_CODE', label: 'ZIP' },
 ] as const;
-const extraOptions = [{ id: 'IP_ADDRESS', label: 'IP addresses' }, { id: 'DATE', label: 'Dates' }, { id: 'ZIP_CODE', label: 'ZIP codes' }];
+const entityLabel = (id: string) => entityOptions.find(option => option.id === id)?.label.toUpperCase() || id.replaceAll('_', ' ');
 const initialPolicy: Policy = { entities: ['EMAIL', 'PHONE', 'SSN', 'CREDIT_CARD'], allow_support_email: true };
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-function Icon({ name, size = 18, className = '' }: { name: string; size?: number; className?: string }) {
+function Icon({ name, size = 18 }: { name: string; size?: number }) {
   const paths: Record<string, ReactNode> = {
-    arrow: <><path d="M5 12h14M13 6l6 6-6 6" /></>,
-    upload: <><path d="M12 16V3m-5 5 5-5 5 5M4 16v5h16v-5" /></>,
-    file: <><path d="M14 3H5v18h14V8zM14 3v5h5M8 13h8M8 17h5" /></>,
-    check: <path d="m5 12 4 4L19 6" />,
-    shield: <><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6z" /><path d="m8 12 3 3 5-6" /></>,
-    mail: <><rect x="3" y="5" width="18" height="14" rx="3" /><path d="m3 7 9 6 9-6" /></>,
-    phone: <path d="m7 3 3 5-3 3c2 3 3 4 6 6l3-3 5 3c0 3-2 5-5 4C9 19 5 15 3 8 2 5 4 3 7 3Z" />,
-    card: <><rect x="3" y="5" width="18" height="14" rx="3" /><path d="M3 10h18M7 15h4" /></>,
-    download: <><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5" /></>,
-    code: <><path d="m8 7-5 5 5 5m8-10 5 5-5 5m-3-13-2 20" /></>,
-    link: <><path d="m9 15 6-6M8 16l-1 1a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0m0 2 1-1a4 4 0 0 1 6 6l-5 5a4 4 0 0 1-6 0" transform="translate(2 0)" /></>,
-    refresh: <><path d="M20 7v5h-5M4 17v-5h5" /><path d="M6 7a7 7 0 0 1 11-2l3 3M4 16l3 3a7 7 0 0 0 11-2" /></>,
-    close: <path d="m6 6 12 12M6 18 18 6" />,
-    trash: <><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" /></>,
+    upload: <><path d="M12 15V4m-5 5 5-5 5 5M5 20h14" /></>,
+    download: <><path d="M12 4v11m-5-5 5 5 5-5M5 20h14" /></>,
+    file: <><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z" /><path d="M14 3v5h5" /></>,
+    check: <path d="m5 12 5 5 9-10" />,
+    code: <><path d="m8 7-5 5 5 5m8-10 5 5-5 5m-2-13-4 16" /></>,
+    trash: <><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></>,
+    replace: <><path d="M20 7v5h-5M4 17v-5h5" /><path d="M6 7a7 7 0 0 1 11-2l3 3M4 16l3 3a7 7 0 0 0 11-2" /></>,
     alert: <><path d="m12 3 10 18H2zM12 9v5M12 17h.01" /></>,
-    clock: <><circle cx="12" cy="12" r="9" /><path d="M12 6v6l4 2" /></>,
-    spark: <><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5z" /></>,
-    layers: <><path d="m12 3 10 5-10 5L2 8zm-9 10 9 5 9-5M3 18l9 5 9-5" /></>,
-    outward: <><path d="M8 4h12v12M20 4 4 20" /></>,
+    close: <path d="m6 6 12 12M6 18 18 6" />,
+    restart: <><path d="M4 12a8 8 0 1 0 2.4-5.7" /><path d="M4 4v4h4" /></>,
+    sliders: <><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" /></>,
+    back: <path d="m15 6-6 6 6 6" />,
   };
-  return <svg aria-hidden="true" className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round">{paths[name] || paths.file}</svg>;
+  return <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round">{paths[name] || paths.file}</svg>;
 }
 
 class ApiError extends Error {
@@ -72,17 +66,14 @@ async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const body = await response.json().catch(() => null);
   if (!response.ok) {
     const detail = body?.error?.message || (typeof body?.detail === 'string' ? body.detail : null);
-    throw new ApiError(detail || (response.status === 404 ? 'This session has expired. Reimport your input to continue.' : 'The request could not be completed. Please check the input and retry.'), response.status, body?.error?.code || 'request_failed');
+    throw new ApiError(detail || (response.status === 404 ? 'Session expired. Reimport to continue.' : 'Request failed. Check the input and retry.'), response.status, body?.error?.code || 'request_failed');
   }
   return body as T;
 }
 
-function textValue(value: unknown): string {
-  if (value === null || value === undefined || value === '') return '—';
-  return typeof value === 'string' ? value : JSON.stringify(value);
-}
-
-function MarkedText({ text, changes, messageIndex, side }: { text: string; changes: Change[]; messageIndex: number; side: 'raw' | 'clean' }) {
+/** Renders text with Core's real change ranges. `delay0` staggers each match so replacements play in reading order. */
+function MarkedText({ text, changes, messageIndex, side, mark, delay0 }: { text: string; changes: Change[]; messageIndex: number; side: Side; mark: Mark; delay0: number }) {
+  if (mark === 'plain') return <>{text}</>;
   const chars = Array.from(text);
   const ranges = changes.filter(c => c.message_index === messageIndex).map(c => ({
     start: side === 'raw' ? c.start : c.output_start, end: side === 'raw' ? c.end : c.output_end, type: c.entity_type,
@@ -92,42 +83,65 @@ function MarkedText({ text, changes, messageIndex, side }: { text: string; chang
   ranges.forEach((range, index) => {
     if (range.start < cursor) return;
     if (range.start > cursor) parts.push(chars.slice(cursor, range.start).join(''));
-    parts.push(<mark key={`${range.start}-${index}`} className={`match-${side}`} title={range.type.replaceAll('_', ' ')}>{chars.slice(range.start, range.end).join('')}</mark>);
+    const delay = `${Math.min(delay0 + index * 0.11, 2.6).toFixed(2)}s`;
+    parts.push(<mark key={`${range.start}-${index}`} className={`pii pii-${mark}`} style={{ animationDelay: delay }} title={range.type.replaceAll('_', ' ')}>{chars.slice(range.start, range.end).join('')}</mark>);
     cursor = range.end;
   });
   if (cursor < chars.length) parts.push(chars.slice(cursor).join(''));
-  return <>{parts.length ? parts : text}</>;
+  return <>{parts}</>;
 }
 
-function ConversationPane({ messages, side, changes = [] }: { messages: Message[]; side: 'raw' | 'clean'; changes?: Change[] }) {
-  return <div className={`conversation-pane ${side}`}>
-    <div className="pane-heading"><span className={`pane-dot ${side}`} />{side === 'raw' ? 'Original' : 'Cleaned'}<span className="pane-label">{side === 'raw' ? 'SOURCE' : 'OUTPUT'}</span></div>
-    <div className="messages">
-      {messages.map((message, index) => <article className={`message role-${message.role}`} key={`${index}-${message.role}`}>
-        <div className="message-heading"><span className="role-avatar">{message.role === 'assistant' ? <Icon name="spark" size={13} /> : message.role === 'user' ? 'C' : <Icon name="code" size={12} />}</span><span>{message.role === 'user' ? 'User' : message.role === 'assistant' ? 'Assistant' : message.role}</span><span className="turn-label">{String(index + 1).padStart(2, '0')}</span></div>
-        <p><MarkedText text={message.content} changes={changes} messageIndex={index} side={side} /></p>
-      </article>)}
-    </div>
+function Messages({ messages, side, changes, mark, delay0 }: { messages: Message[]; side: Side; changes: Change[]; mark: Mark; delay0: number }) {
+  let offset = 0;
+  return <div className={`messages side-${side}`}>
+    {messages.map((message, index) => {
+      const start = delay0 + offset * 0.11;
+      offset += changes.filter(c => c.message_index === index).length;
+      return <div className={`message role-${message.role}`} key={`${index}-${message.role}`}>
+        <span className="role">{message.role}</span>
+        <p><MarkedText text={message.content} changes={changes} messageIndex={index} side={side} mark={mark} delay0={start} /></p>
+      </div>;
+    })}
   </div>;
+}
+
+function useCountUp(target: number, active: boolean) {
+  const [value, setValue] = useState(active ? 0 : target);
+  useEffect(() => {
+    if (!active || reducedMotion()) { setValue(target); return; }
+    setValue(0);
+    const started = performance.now();
+    const duration = Math.min(400 + target * 45, 1400);
+    let frame = 0;
+    const tick = (now: number) => {
+      const t = Math.min((now - started) / duration, 1);
+      setValue(Math.round(target * (1 - Math.pow(1 - t, 3))));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target, active]);
+  return value;
+}
+
+function formatSaved(iso: string) {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
 export default function App() {
   const [stage, setStage] = useState<Stage>('empty');
-  const [health, setHealth] = useState<{ status: string; versions: Versions } | null>(null);
-  const [healthError, setHealthError] = useState(false);
-  const [checkingHealth, setCheckingHealth] = useState(true);
+  const [versions, setVersions] = useState<Versions | null>(null);
   const [dataset, setDataset] = useState<Dataset | null>(null);
   const [run, setRun] = useState<Run | null>(null);
   const [policy, setPolicy] = useState<Policy>(initialPolicy);
   const [notice, setNotice] = useState<Notice>(null);
-  const [tab, setTab] = useState<Tab>('conversations');
-  const [view, setView] = useState<View>('compare');
-  const [compact, setCompact] = useState(() => window.matchMedia('(max-width: 760px)').matches);
-  const reviewRef = useRef<HTMLElement>(null);
-  const [selected, setSelected] = useState(0);
+  const [view, setView] = useState<Side>('raw');
+  const [revealing, setRevealing] = useState(false);
+  const [revealKey, setRevealKey] = useState(0);
+  const [phase, setPhase] = useState<'review' | 'download'>('review');
+  const [compact, setCompact] = useState(() => window.matchMedia('(max-width: 899px)').matches);
   const [dragging, setDragging] = useState(false);
-  const [urlInput, setUrlInput] = useState('');
-  const [showUrl, setShowUrl] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [failureTest, setFailureTest] = useState(false);
   const [filename, setFilename] = useState('');
@@ -135,32 +149,21 @@ export default function App() {
   const fileInput = useRef<HTMLInputElement>(null);
   const controller = useRef<AbortController | null>(null);
   const generation = useRef(0);
+  const revealTimer = useRef<number | undefined>(undefined);
   const input = useRef<{ content: string; filename: string } | null>(null);
   const runPolicy = useRef('');
   const busy = stage === 'fetching' || stage === 'importing' || stage === 'running';
   const locked = busy || downloading !== null;
   const validRelease = run?.status === 'ready' && stage === 'ready' && runPolicy.current === JSON.stringify(policy);
-  const versions = health?.versions || dataset?.versions;
-  const activeConversation = dataset?.conversations[selected];
-  const activeExample = run?.examples?.find(example => example.raw?.provenance?.session_id === activeConversation?.session_id) || run?.examples?.[selected];
-  const activeExampleIndex = activeExample ? run!.examples.indexOf(activeExample) : selected;
-  const visibleMetadata = (run?.metadata_review || []).filter(item => item.example_index === undefined || item.example_index === activeExampleIndex);
-  const rawMessages = activeExample?.raw?.messages || activeConversation?.messages || [];
-  const cleanMessages = activeExample?.clean?.messages;
+  const hasResult = !!run && (stage === 'ready' || stage === 'blocked');
+  const step = !dataset ? 0 : stage === 'running' ? 2 : hasResult ? (phase === 'download' && validRelease ? 4 : 3) : 1;
   const replacements = run?.summary?.replacements ?? 0;
-  const displayView: View = cleanMessages ? (compact && view === 'compare' ? 'clean' : view) : 'raw';
-  const dirty = stage === 'stale';
+  const withheld = (run?.metadata_review || []).filter(item => item.action === 'omitted').length;
+  const count = useCountUp(replacements, step === 3 && view === 'clean' && !revealing && run?.status === 'ready');
   const intentionalFailure = failureTest && run?.error?.code === 'injected_failure';
 
-  async function checkHealth() {
-    setCheckingHealth(true); setHealthError(false);
-    try { const result = await api<{ status: string; versions: Versions }>('/api/health'); setHealth(result); }
-    catch { setHealthError(true); }
-    finally { setCheckingHealth(false); }
-  }
-
   useEffect(() => {
-    void checkHealth();
+    api<{ versions: Versions }>('/api/health').then(result => setVersions(result.versions)).catch(() => undefined);
     try {
       const value = localStorage.getItem(SOURCE_CACHE_KEY);
       if (value) {
@@ -169,28 +172,25 @@ export default function App() {
         else localStorage.removeItem(SOURCE_CACHE_KEY);
       }
     } catch { /* Storage can be unavailable in private or restricted browsers. */ }
-    return () => controller.current?.abort();
+    return () => { controller.current?.abort(); window.clearTimeout(revealTimer.current); };
   }, []);
 
   useEffect(() => {
-    const media = window.matchMedia('(max-width: 760px)');
+    const media = window.matchMedia('(max-width: 899px)');
     const update = () => setCompact(media.matches);
     media.addEventListener('change', update);
     return () => media.removeEventListener('change', update);
   }, []);
 
   useEffect(() => {
-    if (compact && (stage === 'ready' || stage === 'blocked')) {
-      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      reviewRef.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
-    }
-  }, [stage, compact]);
+    window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' });
+  }, [step]);
 
   function cacheSource(content: string, name: string): boolean {
     if (new Blob([content]).size > MAX_INPUT_BYTES) return false;
     const saved: SavedInput = { content, filename: name, savedAt: new Date().toISOString() };
     try { localStorage.setItem(SOURCE_CACHE_KEY, JSON.stringify(saved)); setSavedInput(saved); return true; }
-    catch { setSavedInput(null); return false; }
+    catch { return false; }
   }
 
   function clearSourceCache(): boolean {
@@ -203,50 +203,52 @@ export default function App() {
     controller.current?.abort();
     controller.current = new AbortController();
     generation.current += 1;
+    window.clearTimeout(revealTimer.current);
     return { id: generation.current, signal: controller.current.signal };
   }
 
   function handleFailure(error: unknown, id: number) {
     if (id !== generation.current || (error instanceof DOMException && error.name === 'AbortError')) return;
     const expired = error instanceof ApiError && error.status === 404;
-    if (error instanceof ApiError && error.code === 'network_error') setHealthError(true);
-    setStage(expired ? 'expired' : 'error');
-    setNotice({ type: 'error', message: error instanceof Error ? error.message : 'Something interrupted this run. Please retry.' });
+    setStage(expired ? 'expired' : dataset || input.current ? 'error' : 'empty');
+    setNotice({ type: 'error', message: error instanceof Error ? error.message : 'Interrupted. Retry.' });
+  }
+
+  function clearResult() {
+    setRun(null); setPhase('review'); setView('raw'); setRevealing(false); setFailureTest(false);
   }
 
   async function importText(content: string, name: string, request?: { id: number; signal: AbortSignal }) {
     const current = request || newRequest();
-    setStage('importing'); setNotice(null); setRun(null); setDataset(null); setSelected(0); setTab('conversations'); setFailureTest(false);
-    clearSourceCache();
+    setStage('importing'); setNotice(null); clearResult(); setDataset(null);
     input.current = { content, filename: name }; setFilename(name);
     try {
       if (new Blob([content]).size > MAX_INPUT_BYTES) throw new ApiError('Choose a JSONL file of 2 MiB or less.');
       const result = await api<Dataset>('/api/datasets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content, filename: name }), signal: current.signal });
       if (current.id !== generation.current) return;
-      setDataset(result); setStage('imported'); setShowUrl(false);
-      setHealthError(false);
+      setDataset(result); setStage('imported');
       if (!cacheSource(content, name)) setNotice({ type: 'info', message: 'Imported. Browser storage unavailable.' });
-      if (result.versions) setHealth(previous => ({ status: previous?.status || 'ok', versions: result.versions }));
-    } catch (error) { handleFailure(error, current.id); }
+      if (result.versions) setVersions(result.versions);
+    } catch (error) { input.current = null; handleFailure(error, current.id); }
   }
 
   async function fetchSampleText(url: string, signal: AbortSignal) {
-      const parsed = new URL(url, window.location.origin);
-      const sameSample = parsed.origin === window.location.origin && parsed.pathname === SAMPLE_PATH;
-      if (!sameSample && parsed.href !== PUBLIC_SAMPLE && parsed.href !== GENERATOR_SAMPLE) throw new ApiError('Use the published sample link, or choose a local JSONL file.');
-      let response = await fetch(parsed.href, { signal, credentials: 'omit' });
-      if (!response.ok && sameSample) response = await fetch('/api/sample', { signal });
-      if (!response.ok) throw new ApiError('The sample could not be downloaded. Try the direct download link or choose a file.');
-      return response.text();
+    const parsed = new URL(url, window.location.origin);
+    const sameSample = parsed.origin === window.location.origin && parsed.pathname === SAMPLE_PATH;
+    if (!sameSample && parsed.href !== PUBLIC_SAMPLE && parsed.href !== GENERATOR_SAMPLE) throw new ApiError('Drop the sample link or a JSONL file.');
+    let response = await fetch(parsed.href, { signal, credentials: 'omit' });
+    if (!response.ok && sameSample) response = await fetch('/api/sample', { signal });
+    if (!response.ok) throw new ApiError('Sample download failed. Retry.');
+    return response.text();
   }
 
   async function loadSample(url = SAMPLE_PATH) {
     const request = newRequest();
-    setStage('fetching'); setNotice(null); setRun(null); setDataset(null); setSelected(0);
+    setStage('fetching'); setNotice(null);
     try {
       const content = await fetchSampleText(url, request.signal);
       if (request.id !== generation.current) return;
-      await importText(content, 'support-conversations-v1.jsonl', request);
+      await importText(content, SAMPLE_NAME, request);
     } catch (error) { handleFailure(error, request.id); }
   }
 
@@ -263,16 +265,16 @@ export default function App() {
     try {
       const content = await fetchSampleText(SAMPLE_PATH, request.signal);
       if (request.id !== generation.current) return;
-      const saved = cacheSource(content, 'support-conversations-v1.jsonl');
-      saveBlob(new Blob([content], { type: 'application/x-ndjson' }), 'support-conversations-v1.jsonl');
-      setStage(dataset ? 'imported' : 'empty');
-      setNotice({ type: 'info', message: saved ? 'Downloaded.' : 'Downloaded. Browser storage unavailable.' });
+      const saved = cacheSource(content, SAMPLE_NAME);
+      saveBlob(new Blob([content], { type: 'application/x-ndjson' }), SAMPLE_NAME);
+      setStage('empty');
+      setNotice({ type: 'info', message: saved ? 'Downloaded and saved here.' : 'Downloaded. Browser storage unavailable.' });
     } catch (error) { handleFailure(error, request.id); }
   }
 
   async function loadFile(file: File) {
     const request = newRequest();
-    setStage('importing'); setNotice(null); setRun(null); setDataset(null);
+    setStage('importing'); setNotice(null);
     try { if (file.size > MAX_INPUT_BYTES) throw new ApiError('Choose a JSONL file of 2 MiB or less.'); const content = await file.text(); if (request.id === generation.current) await importText(content, file.name, request); }
     catch (error) { handleFailure(error, request.id); }
     if (fileInput.current) fileInput.current.value = '';
@@ -281,35 +283,49 @@ export default function App() {
   async function onDrop(event: DragEvent) {
     event.preventDefault(); setDragging(false);
     if (locked) return;
-    if (event.dataTransfer.files.length > 1) { setNotice({ type: 'error', message: 'Choose one JSONL file at a time.' }); return; }
+    if (event.dataTransfer.files.length > 1) { setNotice({ type: 'error', message: 'Drop one JSONL file.' }); return; }
     if (event.dataTransfer.files.length) { await loadFile(event.dataTransfer.files[0]); return; }
     const raw = event.dataTransfer.getData('text/uri-list') || event.dataTransfer.getData('text/plain');
     const url = raw.split('\n').find(line => line.trim() && !line.startsWith('#'))?.trim();
     if (url) await loadSample(url);
-    else setNotice({ type: 'error', message: 'Drop a JSONL file or the published sample link here.' });
+    else setNotice({ type: 'error', message: 'Drop a JSONL file or the sample link.' });
   }
+
+  const dropProps = {
+    onDragOver: (event: DragEvent) => { event.preventDefault(); if (!locked) setDragging(true); },
+    onDragLeave: (event: DragEvent) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragging(false); },
+    onDrop: (event: DragEvent) => void onDrop(event),
+  };
 
   function updatePolicy(next: Policy) {
     setPolicy(next); setNotice(null);
-    if (run) setStage('stale');
+    if (run) { setStage('stale'); setPhase('review'); setView('raw'); }
   }
 
   function toggleEntity(entity: string) {
     updatePolicy({ ...policy, entities: policy.entities.includes(entity) ? policy.entities.filter(value => value !== entity) : [...policy.entities, entity] });
   }
 
+  function playReveal(result: Run) {
+    setRevealKey(key => key + 1);
+    if (result.status !== 'ready' || reducedMotion()) { setView(result.status === 'ready' ? 'clean' : 'raw'); setRevealing(false); return; }
+    // Replay the real ranges: originals light up first, then their replacements land.
+    setView('raw'); setRevealing(true);
+    const total = result.examples.reduce((sum, example) => sum + example.changes.length, 0);
+    revealTimer.current = window.setTimeout(() => { setView('clean'); setRevealing(false); setRevealKey(key => key + 1); }, Math.min(900 + total * 60, 2200));
+  }
+
   async function runExport(injectFailure = false) {
     if (!dataset || locked) return;
     const current = newRequest();
     const currentPolicy = JSON.stringify(policy);
-    setStage('running'); setNotice(null); setRun(null); setFailureTest(injectFailure);
+    setStage('running'); setNotice(null); setRun(null); setPhase('review'); setView('raw'); setFailureTest(injectFailure);
     try {
       const result = await api<Run>('/api/runs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataset_id: dataset.dataset_id, policy, inject_failure: injectFailure }), signal: current.signal });
       if (current.id !== generation.current) return;
       runPolicy.current = currentPolicy;
-      setHealthError(false);
       setRun(result); setStage(result.status);
-      if (result.status === 'blocked') setNotice({ type: 'info', message: result.error?.message || 'Cleanup stopped. No completed bundle was released.' });
+      playReveal(result);
     } catch (error) { handleFailure(error, current.id); }
   }
 
@@ -318,85 +334,172 @@ export default function App() {
     setDownloading(kind); setNotice(null);
     try {
       const response = await fetch(`/api/runs/${encodeURIComponent(run.run_id)}/${kind}`);
-      if (!response.ok) throw new ApiError(response.status === 404 ? 'This release has expired. Reimport your input to create it again.' : 'The download did not complete. Please retry.', response.status);
+      if (!response.ok) throw new ApiError(response.status === 404 ? 'Release expired. Reimport to rebuild it.' : 'Download failed. Retry.', response.status);
       const blob = await response.blob();
       saveBlob(blob, kind === 'bundle' ? 'datafog-training-release.zip' : kind === 'training' ? 'training.jsonl' : 'privacy-receipt.json');
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) setStage('expired');
-      setNotice({ type: 'error', message: error instanceof Error ? error.message : 'The download did not complete. Please retry.' });
+      setNotice({ type: 'error', message: error instanceof Error ? error.message : 'Download failed. Retry.' });
     } finally { setDownloading(null); }
   }
 
-  function reset() {
-    newRequest(); setDataset(null); setRun(null); setStage('empty'); setNotice(null); setSelected(0); setFilename(''); setTab('conversations'); setFailureTest(false); input.current = null;
-    if (!clearSourceCache()) setNotice({ type: 'error', message: 'Browser storage could not be cleared. Clear site data in browser settings.' });
+  function startOver() {
+    newRequest(); setDataset(null); clearResult(); setStage('empty'); setNotice(null); setFilename(''); input.current = null;
   }
 
-  const statusLabel = stage === 'running' ? 'Processing export' : stage === 'ready' ? 'Release ready' : stage === 'blocked' ? 'Release blocked' : stage === 'stale' ? 'Policy changed' : stage === 'expired' ? 'Session expired' : 'Ready to review';
+  function clearSaved() {
+    const cleared = clearSourceCache();
+    startOver();
+    if (!cleared) setNotice({ type: 'error', message: 'Browser storage could not be cleared.' });
+  }
 
-  return <div className="app-shell" onDragOver={event => event.preventDefault()} onDrop={event => event.preventDefault()}>
-    <header className="site-header page-width">
-      <a href="https://www.lancedb.com/" target="_blank" rel="noreferrer" className="brand" aria-label="LanceDB website"><img src="https://cdn.prod.website-files.com/69a866b324926425eccc4cf5/69ab0db86188576e86d098f7_c1b5a4653a6fa4cc4b2ff7641e1276b1_lanceDB_logo.avif" width="146" height="30" alt="LanceDB" /></a>
-      <div className="header-links"><a href="https://github.com/DataFog/datafog-lance-context" target="_blank" rel="noreferrer" className="source-link"><Icon name="code" size={17} /><span>Source</span><Icon name="outward" size={13} /></a></div>
+  function showSide(side: Side) {
+    window.clearTimeout(revealTimer.current);
+    setRevealing(false); setView(side); setRevealKey(key => key + 1);
+  }
+
+  const conversations = (dataset?.conversations || []).map((conversation, index) => {
+    const example = run?.examples?.find(item => item.raw?.provenance?.session_id === conversation.session_id) || run?.examples?.[index];
+    return { conversation, example, index };
+  });
+  let staggerOffset = 0;
+  const showBoth = !compact && hasResult && run?.status === 'ready';
+  const rawMark: Mark = !hasResult || run?.status !== 'ready' ? 'plain' : revealing || showBoth ? 'hit' : 'struck';
+
+  let primary: { label: string; action: () => void; disabled?: boolean; icon?: string; spinner?: boolean };
+  if (step === 0) primary = savedInput
+    ? { label: stage === 'importing' || stage === 'fetching' ? 'Importing' : 'Use saved copy', action: () => void importText(savedInput.content, savedInput.filename), disabled: locked, spinner: busy }
+    : { label: stage === 'importing' || stage === 'fetching' ? 'Importing' : 'Use sample', action: () => void loadSample(), disabled: locked, spinner: busy };
+  else if (step === 1) primary = stage === 'expired'
+    ? { label: 'Reimport', action: () => input.current && void importText(input.current.content, input.current.filename), disabled: locked || !input.current }
+    : { label: stage === 'stale' ? 'Rerun DataFog' : 'Apply DataFog', action: () => void runExport(), disabled: locked || policy.entities.length === 0 };
+  else if (step === 2) primary = { label: 'Cleaning', action: () => undefined, disabled: true, spinner: true };
+  else if (step === 3) primary = run?.status === 'blocked'
+    ? { label: 'Retry', action: () => void runExport(), disabled: locked }
+    : { label: 'Export', action: () => setPhase('download'), disabled: revealing || !validRelease };
+  else primary = { label: downloading === 'training' ? 'Downloading' : 'Download JSONL', action: () => void download('training'), disabled: !!downloading, icon: 'download', spinner: downloading === 'training' };
+
+  return <div className={`app step-${step}`} onDragOver={event => event.preventDefault()} onDrop={event => event.preventDefault()}>
+    <header className="topbar">
+      <div className="topbar-inner">
+        <a href="https://www.lancedb.com/" target="_blank" rel="noreferrer" className="brand" aria-label="LanceDB website"><img src="https://cdn.prod.website-files.com/69a866b324926425eccc4cf5/69ab0db86188576e86d098f7_c1b5a4653a6fa4cc4b2ff7641e1276b1_lanceDB_logo.avif" width="118" height="24" alt="LanceDB" /><span className="brand-x">× DataFog</span></a>
+        <a href="https://github.com/DataFog/datafog-lance-context" target="_blank" rel="noreferrer" className="icon-button" aria-label="Source on GitHub"><Icon name="code" size={20} /></a>
+      </div>
+      <ol className="rail" aria-label="Progress">
+        {STEPS.map((label, index) => <li key={label} className={index < step ? 'done' : index === step ? 'current' : ''} aria-current={index === step ? 'step' : undefined}><span className="bar" /><span className="rail-label">{label}</span></li>)}
+      </ol>
     </header>
 
-    <main className="page-width">
-      <section className="intro">
-        <div><span className="eyebrow">LANCE-CONTEXT</span><h1>Review a training export.</h1></div>
-        <div className="engine-info"><div className="engine-status"><span className={`status-dot ${health && !healthError ? 'online' : checkingHealth ? 'checking' : 'offline'}`} /><span>{checkingHealth ? 'Connecting…' : healthError ? 'Connection interrupted' : 'Engine online'}</span>{healthError && <button className="text-button" onClick={() => void checkHealth()}>Retry</button>}</div><div className="engine-versions"><span>lance-context <b>{textValue(versions?.lance_context)}</b></span><span>datafog-core <b>{textValue(versions?.datafog_core)}</b></span></div></div>
-      </section>
+    <input ref={fileInput} type="file" accept=".jsonl,.ndjson,application/x-ndjson,text/plain" className="visually-hidden" aria-label="Choose a conversation JSONL file" onChange={event => { const file = event.target.files?.[0]; if (file) void loadFile(file); }} />
 
-      <div className={`pipeline state-${stage}`} aria-label={`Export flow: ${statusLabel}`}>
-        <div className={`pipeline-step ${dataset ? 'done' : 'current'}`}><span className="step-icon">{dataset ? <Icon name="check" size={15} /> : <Icon name="layers" size={17} />}</span><span>Source</span>{dataset && <small>v{dataset.source_version}</small>}</div><div className="pipeline-connector" />
-        <div className={`pipeline-step ${stage === 'running' ? 'current processing' : run?.status === 'ready' && !dirty ? 'done' : stage === 'blocked' ? 'failed' : ''}`}><span className="step-icon">{stage === 'running' ? <span className="spinner" /> : run?.status === 'ready' && !dirty ? <Icon name="check" size={15} /> : <Icon name="shield" size={17} />}</span><span>Clean</span></div><div className="pipeline-connector" />
-        <div className={`pipeline-step ${validRelease ? 'done release-done' : stage === 'blocked' ? 'failed' : ''}`}><span className="step-icon">{validRelease ? <Icon name="check" size={15} /> : stage === 'blocked' ? <Icon name="close" size={15} /> : <Icon name="file" size={17} />}</span><span>Release</span></div>
-      </div>
-
-
-      {notice && <div className={`notice notice-${notice.type}`} role={notice.type === 'error' ? 'alert' : 'status'}><Icon name={notice.type === 'error' ? 'alert' : 'shield'} /><div>{notice.message}{stage === 'expired' && input.current && <button className="inline-link" onClick={() => input.current && void importText(input.current.content, input.current.filename)}>Reimport input<Icon name="arrow" size={14} /></button>}</div><button className="icon-button" aria-label="Dismiss message" onClick={() => setNotice(null)}><Icon name="close" size={18} /></button></div>}
-
-      {savedInput && !dataset && <section className="saved-input-card" aria-label="Saved source"><span className="saved-file-icon"><Icon name="file" size={23} /></span><div className="saved-file-copy"><strong>{savedInput.filename}</strong></div><button className="button button-outline" disabled={locked} onClick={() => void importText(savedInput.content, savedInput.filename)}>Load saved file<Icon name="arrow" size={15} /></button><button className="icon-button saved-trash" aria-label="Remove saved file" title="Remove saved file" disabled={locked} onClick={reset}><Icon name="trash" size={20} /></button></section>}
-
-      <input ref={fileInput} type="file" accept=".jsonl,.ndjson,application/x-ndjson,text/plain" className="visually-hidden" aria-label="Choose a conversation JSONL file" onChange={event => { const file = event.target.files?.[0]; if (file) void loadFile(file); }} />
-
-      {!dataset && <section className={`import-card ${dragging ? 'dragging' : ''}`} onDragOver={event => { event.preventDefault(); if (!locked) setDragging(true); }} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragging(false); }} onDrop={event => void onDrop(event)} aria-busy={busy}>
-        <div className="import-heading"><span className="eyebrow">01 / SOURCE</span><span className="file-format">JSONL</span></div>
-        <div className="drop-zone"><span className="upload-symbol">{busy ? <span className="spinner" /> : <Icon name="upload" size={29} />}</span><h2>{stage === 'fetching' ? 'Downloading sample…' : stage === 'importing' ? 'Creating Lance snapshot…' : 'Add conversations.'}</h2><button className="button button-primary" disabled={locked} onClick={() => fileInput.current?.click()}><Icon name="upload" size={17} />Choose file</button></div>
-        <div className="sample-actions"><button className="button button-outline" disabled={locked} onClick={() => void loadSample()}>Load the sample<Icon name="arrow" size={17} /></button><a href={SAMPLE_PATH} download="support-conversations-v1.jsonl" className={`button button-outline sample-download ${locked ? 'disabled' : ''}`} aria-disabled={locked} draggable onClick={event => { event.preventDefault(); if (!locked) void downloadSample(); }}><Icon name="download" size={17} />Download sample</a></div>
-        <div className="import-secondary"><button className="text-button" disabled={locked} onClick={() => setShowUrl(!showUrl)}><Icon name="link" size={16} />Paste sample link</button></div>
-        {showUrl && <form className="url-form" onSubmit={event => { event.preventDefault(); void loadSample(urlInput.trim()); }}><label className="visually-hidden" htmlFor="sample-url">Published sample URL</label><input id="sample-url" type="url" placeholder={PUBLIC_SAMPLE} value={urlInput} onChange={event => setUrlInput(event.target.value)} disabled={locked} required /><button className="button button-primary" type="submit" disabled={locked}>Load<Icon name="arrow" size={16} /></button></form>}
+    <main className="stage" key={step === 4 ? 'download' : step === 0 ? 'upload' : 'review'}>
+      {step === 0 && <section className="upload" {...dropProps}>
+        <h1>Conversations in.<br /><span>Training data out.</span></h1>
+        <button type="button" className={`dropzone ${dragging ? 'dragging' : ''} ${busy ? 'busy' : ''}`} onClick={() => fileInput.current?.click()} disabled={locked}>
+          <span className="drop-file"><Icon name={busy ? 'upload' : 'file'} size={18} /><span>{busy ? filename || SAMPLE_NAME : 'JSONL'}</span></span>
+          <span className="drop-label">{busy ? 'Importing' : <>Drop JSONL or <u>choose file</u></>}</span>
+        </button>
+        <div className="source-list">
+          <div className="source-row">
+            <span className="source-copy"><strong>Sample</strong><small>8 conversations · JSONL</small></span>
+            <a href={SAMPLE_PATH} download={SAMPLE_NAME} draggable className="icon-button" aria-label="Download sample" aria-disabled={locked} onClick={event => { event.preventDefault(); void downloadSample(); }}><Icon name="download" size={20} /></a>
+          </div>
+          {savedInput && <div className="source-row saved">
+            <span className="source-copy"><strong>Saved copy</strong><small>{savedInput.filename} · {formatSaved(savedInput.savedAt)}</small></span>
+            <button className="pill-button" disabled={locked} onClick={() => void importText(savedInput.content, savedInput.filename)}>Use</button>
+            <button className="icon-button" aria-label="Clear saved copy" disabled={locked} onClick={clearSaved}><Icon name="trash" size={19} /></button>
+          </div>}
+        </div>
       </section>}
 
-      {dataset && <section className={`workspace ${dragging ? 'dragging' : ''}`} onDragOver={event => { event.preventDefault(); if (!locked) setDragging(true); }} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragging(false); }} onDrop={event => void onDrop(event)} aria-busy={busy}>
-        <div className="source-bar"><span className="source-file-icon"><Icon name="file" size={21} /></span><div className="source-file"><strong>{filename || 'Conversation source'}</strong><span>{dataset.conversation_count} conversations · {dataset.message_count} messages · snapshot {dataset.source_version}</span></div><div className="source-actions"><button className="button button-outline" onClick={() => fileInput.current?.click()} disabled={locked}><Icon name="upload" size={16} /><span>Replace</span></button><button className="icon-button" aria-label="Remove saved file" title="Remove saved file and reset workspace" onClick={reset} disabled={downloading !== null}><Icon name="trash" size={20} /></button></div></div>
-
-        <div className="workspace-body">
-          <aside className="policy-panel"><div className="panel-heading"><span className="eyebrow">02 / POLICY</span><h2>Privacy rules</h2></div><fieldset disabled={locked}><legend className="visually-hidden">Personal data types to redact</legend><div className="entity-options">{entityOptions.map(option => <label className={`entity-option ${policy.entities.includes(option.id) ? 'checked' : ''}`} key={option.id}><input type="checkbox" checked={policy.entities.includes(option.id)} onChange={() => toggleEntity(option.id)} /><span className="custom-check"><Icon name="check" size={14} /></span><span className="entity-icon"><Icon name={option.icon} size={18} /></span><span>{option.id === 'SSN' ? 'Social Security' : option.id === 'CREDIT_CARD' ? 'Credit cards' : option.label}</span></label>)}</div><details className="extra-patterns"><summary>More patterns<Icon name="arrow" size={15} /></summary><div>{extraOptions.map(option => <label key={option.id}><input type="checkbox" checked={policy.entities.includes(option.id)} onChange={() => toggleEntity(option.id)} />{option.label}</label>)}</div></details><label className="allow-rule"><span><strong>Keep public support email</strong><small>support@example.com</small></span><input className="toggle-input" type="checkbox" checked={policy.allow_support_email} onChange={() => updatePolicy({ ...policy, allow_support_email: !policy.allow_support_email })} /><span className="toggle-visual" /></label></fieldset>{policy.entities.length === 0 && <p className="policy-selection-error" role="status">Select at least one pattern.</p>}<div className="policy-actions"><button className="button button-primary run-button" disabled={!dataset || locked || policy.entities.length === 0} onClick={() => void runExport()}>{stage === 'running' ? <span className="spinner" /> : <Icon name="shield" size={18} />}{stage === 'running' ? 'Processing export…' : stage === 'stale' ? 'Rerun with this policy' : 'Run privacy export'}{stage !== 'running' && <Icon name="arrow" size={18} />}</button><button className="button button-outline failure-button" disabled={!dataset || locked || policy.entities.length === 0} onClick={() => void runExport(true)}><Icon name="alert" size={16} />Test a blocked release</button></div></aside>
-
-          <section ref={reviewRef} className={`review-area ${dirty ? 'has-stale-result' : ''}`}>
-            <div className="panel-heading review-heading"><span className="eyebrow">03 / REVIEW</span><span className={`release-chip release-${stage}`} aria-live="polite">{stage === 'running' ? <span className="spinner" /> : <span className="release-status-dot" />}{statusLabel}</span></div>
-            <div className="conversation-selector"><label htmlFor="conversation-select">Conversation</label><select id="conversation-select" value={selected} onChange={event => setSelected(Number(event.target.value))}>{dataset.conversations.map((conversation, index) => <option value={index} key={`${conversation.session_id}-${index}`}>{String(index + 1).padStart(2, '0')} — {typeof conversation.metadata?.scenario === 'string' ? conversation.metadata.scenario.replaceAll('_', ' ') : `Conversation ${index + 1}`}</option>)}</select></div>
-
-            <div className="review-tabs" role="tablist" aria-label="Review views">{(['conversations', 'metadata', 'receipt'] as Tab[]).map((value, index, tabs) => <button role="tab" id={`tab-${value}`} aria-selected={tab === value} aria-controls={`panel-${value}`} tabIndex={tab === value ? 0 : -1} className={tab === value ? 'active' : ''} key={value} onClick={() => setTab(value)} onKeyDown={event => { const next = event.key === 'ArrowRight' ? tabs[(index + 1) % tabs.length] : event.key === 'ArrowLeft' ? tabs[(index - 1 + tabs.length) % tabs.length] : event.key === 'Home' ? tabs[0] : event.key === 'End' ? tabs[tabs.length - 1] : null; if (next) { event.preventDefault(); setTab(next); document.getElementById(`tab-${next}`)?.focus(); } }}>{value === 'conversations' ? 'Messages' : value === 'metadata' ? 'Metadata' : 'Receipt'}{value === 'metadata' && !!visibleMetadata.length && <span>{visibleMetadata.length}</span>}</button>)}</div>
-
-            {dirty && <div className="stale-banner"><Icon name="refresh" size={17} />Policy changed. Rerun to release current output.</div>}
-            {stage === 'running' && <div className="processing-banner" role="status"><span className="spinner" /><span>{failureTest ? 'Running the intentional failure test…' : 'Exporting, cleaning, and checking output…'}</span></div>}
-            {stage === 'blocked' && <div className="blocked-banner" role="status"><Icon name="shield" size={25} /><div><strong>{intentionalFailure ? 'Failure test passed. Release blocked.' : 'Release blocked.'}</strong></div></div>}
-
-            <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} className="tab-panel" key={`${tab}-${run?.run_id || 'source'}`}>
-              {tab === 'conversations' && <><div className="message-controls"><div className="view-toggle" role="group" aria-label="Message view"><button aria-pressed={displayView === 'raw'} onClick={() => setView('raw')}>Original</button><button aria-pressed={displayView === 'clean'} disabled={!cleanMessages} onClick={() => setView('clean')}>Cleaned</button>{!compact && <button aria-pressed={displayView === 'compare'} disabled={!cleanMessages} onClick={() => setView('compare')}>Compare</button>}</div>{activeExample && <span className="change-count">{activeExample.changes.length} replacements</span>}</div><div className={`comparison mode-${displayView}`} key={`${run?.run_id || 'source'}-${selected}-${displayView}`}>{(displayView === 'raw' || displayView === 'compare') && <ConversationPane messages={rawMessages} side="raw" changes={activeExample?.changes} />}{cleanMessages && (displayView === 'clean' || displayView === 'compare') && <ConversationPane messages={cleanMessages} side="clean" changes={activeExample?.changes} />}</div>{cleanMessages && <div className="comparison-legend"><span><i className="legend-raw" />Original match</span><span><i className="legend-clean" />Replacement</span></div>}</>}
-
-              {tab === 'metadata' && <div className="metadata-panel"><div className="metadata-context"><strong>{typeof activeConversation?.metadata?.scenario === 'string' ? activeConversation.metadata.scenario.replaceAll('_', ' ') : `Conversation ${selected + 1}`}</strong><span>{visibleMetadata.length} field decisions</span></div>{visibleMetadata.length ? <div className="metadata-table-wrap" tabIndex={0} aria-label="Metadata decisions, scroll horizontally if needed"><table className="metadata-table"><thead><tr><th>Field</th><th>Original</th><th>Action</th><th>Released</th></tr></thead><tbody>{visibleMetadata.map((item, index) => <tr key={`${item.field}-${index}`}><th scope="row">{item.field}</th><td><code>{textValue(item.before)}</code></td><td><span className={`action-tag action-${item.action.toLowerCase()}`}>{item.action.replaceAll('_', ' ')}</span></td><td><code>{textValue(item.after)}</code></td></tr>)}</tbody></table></div> : <div className="empty-view">No release data.</div>}</div>}
-
-              {tab === 'receipt' && <div className="receipt-panel">{run?.receipt ? <><div className="receipt-summary"><div><span>Source snapshot</span><strong>v{run.summary.source_version ?? dataset.source_version}</strong></div><div><span>Policy hash</span><strong className="mono">{String(run.summary.policy_hash || '').slice(0, 12) || 'In receipt'}</strong></div><div><span>Replacements</span><strong>{replacements}</strong></div><div><span>Processing time</span><strong>{typeof run.summary.duration_ms === 'number' ? `${run.summary.duration_ms.toLocaleString(undefined, { maximumFractionDigits: 1 })} ms` : 'In receipt'}</strong></div></div><details className="receipt-json" open><summary><Icon name="code" size={17} />Release receipt<span>JSON</span></summary><pre tabIndex={0}>{JSON.stringify(run.receipt, null, 2)}</pre></details><button className="button button-outline" disabled={!validRelease || !!downloading} onClick={() => void download('receipt')}><Icon name="download" size={17} />Download receipt</button></> : <div className="empty-view">{stage === 'blocked' ? 'No receipt.' : 'No receipt.'}</div>}</div>}
-            </div>
-
-            {run?.status === 'ready' && <div className="release-summary"><div className="summary-numbers"><div><strong>{run.summary.examples ?? dataset.conversation_count}</strong><span>Examples</span></div><div><strong>{replacements}</strong><span>Replacements</span></div><div><strong>{run.summary.examples_changed ?? 0}</strong><span>Changed</span></div></div><button className="button button-primary" disabled={!validRelease || !!downloading} onClick={() => void download('bundle')}>{downloading === 'bundle' ? <span className="spinner" /> : <Icon name="download" size={18} />}Download release<Icon name="arrow" size={18} /></button><div className="secondary-downloads"><button disabled={!validRelease || !!downloading} onClick={() => void download('training')}>Training JSONL<Icon name="download" size={14} /></button><button disabled={!validRelease || !!downloading} onClick={() => void download('receipt')}>Receipt<Icon name="download" size={14} /></button></div></div>}
-          </section>
+      {(step === 1 || step === 2 || step === 3) && dataset && <section className={`review ${dragging ? 'dragging' : ''}`} {...dropProps}>
+        <div className="source-bar">
+          <Icon name="file" size={18} />
+          <span className="source-name">{filename || 'Source'}</span>
+          <span className="source-meta">{dataset.conversation_count} · v{dataset.source_version}</span>
+          <button className="icon-button" aria-label="Replace file" disabled={locked} onClick={() => fileInput.current?.click()}><Icon name="replace" size={18} /></button>
+          <button className="icon-button" aria-label="Clear saved copy" disabled={locked} onClick={clearSaved}><Icon name="trash" size={18} /></button>
         </div>
+
+        {step === 3 && run?.status === 'ready' && <div className="tally" aria-live="polite">
+          <div className="tally-count"><strong>{view === 'clean' && !revealing ? count : replacements}</strong><span>removed</span></div>
+          <div className="tally-pills">{Object.entries(run.summary.by_entity || {}).map(([type, n]) => <span key={type}>{entityLabel(type)} {n}</span>)}</div>
+        </div>}
+        {step === 3 && run?.status === 'blocked' && <div className="blocked" role="alert"><Icon name="alert" size={20} /><span>{intentionalFailure ? 'Test failure. Nothing released.' : run.error?.message || 'Blocked. Nothing released.'}</span></div>}
+
+        <div className="controls">
+          {!showBoth && <div className="segmented" role="group" aria-label="View">
+            <button aria-pressed={view === 'raw'} onClick={() => showSide('raw')}>Original</button>
+            <button aria-pressed={view === 'clean'} disabled={!hasResult || run?.status !== 'ready'} onClick={() => showSide('clean')}>Cleaned</button>
+          </div>}
+          {showBoth && <div className="column-heads" aria-hidden="true"><span>Original</span><span>Cleaned</span></div>}
+          {(step === 1 || step === 3) && <details className="rules">
+            <summary aria-label="Rules"><Icon name="sliders" size={18} /><span>{policy.entities.length}</span></summary>
+            <fieldset disabled={locked}>
+              <legend className="visually-hidden">Data types to remove</legend>
+              <div className="chips">{entityOptions.map(option => <label key={option.id} className={policy.entities.includes(option.id) ? 'on' : ''}><input type="checkbox" checked={policy.entities.includes(option.id)} onChange={() => toggleEntity(option.id)} />{option.label}</label>)}</div>
+              <label className="switch"><span>Keep <code>support@example.com</code></span><input type="checkbox" checked={policy.allow_support_email} onChange={() => updatePolicy({ ...policy, allow_support_email: !policy.allow_support_email })} /></label>
+              <button type="button" className="text-button" onClick={() => void runExport(true)} disabled={locked || policy.entities.length === 0}>Test blocked run</button>
+            </fieldset>
+          </details>}
+        </div>
+        {step === 1 && policy.entities.length === 0 && <p className="field-error" role="status">Select at least one type.</p>}
+
+        <div className={`conversations ${step === 2 ? 'scanning' : ''} ${showBoth ? 'both' : ''}`}>
+          {step === 2 && <span className="scan" aria-hidden="true" />}
+          {conversations.map(({ conversation, example, index }) => {
+            const changes = example?.changes || [];
+            const delay0 = Math.min(staggerOffset * 0.11, 2.2);
+            staggerOffset += changes.length;
+            const scenario = typeof conversation.metadata?.scenario === 'string' ? conversation.metadata.scenario.replaceAll('_', ' ') : `conversation ${index + 1}`;
+            const raw = example?.raw?.messages || conversation.messages;
+            const clean = example?.clean?.messages;
+            return <article className="conversation" key={`${conversation.session_id}-${index}-${revealKey}`}>
+              <header><span>{scenario}</span><span>{hasResult && run?.status === 'ready' ? (changes.length ? `${changes.length} removed` : 'clean') : `${index + 1} / ${dataset.conversation_count}`}</span></header>
+              <div className="sides">
+                {(showBoth || view === 'raw' || !clean) && <Messages messages={raw} side="raw" changes={changes} mark={rawMark} delay0={delay0} />}
+                {clean && (showBoth || view === 'clean') && <Messages messages={clean} side="clean" changes={changes} mark="token" delay0={showBoth ? delay0 + 0.9 : delay0} />}
+              </div>
+            </article>;
+          })}
+        </div>
+      </section>}
+
+      {step === 4 && run && dataset && <section className="release">
+        <div className="release-card">
+          <div className="release-file">
+            <span className="file-badge"><Icon name="file" size={26} /><span className="check"><Icon name="check" size={13} /></span></span>
+            <span><strong>training.jsonl</strong><small>{run.summary.examples ?? dataset.conversation_count} conversations · roles kept</small></span>
+          </div>
+          <dl className="release-stats">
+            <div><dt>removed</dt><dd className="lav">{replacements}</dd></div>
+            <div><dt>fields withheld</dt><dd>{withheld}</dd></div>
+            <div><dt>snapshot</dt><dd>v{run.summary.source_version ?? dataset.source_version}</dd></div>
+          </dl>
+        </div>
+        <div className="release-secondary">
+          <button className="outline-button" disabled={!!downloading} onClick={() => void download('receipt')}>{downloading === 'receipt' ? <span className="spinner" /> : <Icon name="download" size={16} />}Receipt</button>
+          <button className="outline-button" disabled={!!downloading} onClick={() => void download('bundle')}>{downloading === 'bundle' ? <span className="spinner" /> : <Icon name="download" size={16} />}ZIP</button>
+        </div>
+        <div className="release-links">
+          <button className="text-button" onClick={() => { setPhase('review'); showSide('clean'); }}><Icon name="back" size={16} />Review</button>
+          <button className="text-button" onClick={startOver}><Icon name="restart" size={16} />Start over</button>
+        </div>
+        {versions && <p className="versions">lance-context {String(versions.lance_context ?? '—')} · datafog-core {String(versions.datafog_core ?? '—')}</p>}
       </section>}
     </main>
 
-
+    <footer className="actionbar">
+      <div className="actionbar-inner">
+        {notice && <div className={`notice notice-${notice.type}`} role={notice.type === 'error' ? 'alert' : 'status'}>
+          <Icon name={notice.type === 'error' ? 'alert' : 'check'} size={16} /><span>{notice.message}</span>
+          <button className="icon-button" aria-label="Dismiss" onClick={() => setNotice(null)}><Icon name="close" size={16} /></button>
+        </div>}
+        <button className={`primary ${step === 2 ? 'working' : ''}`} onClick={primary.action} disabled={primary.disabled}>
+          {primary.spinner ? <span className="spinner dark" /> : primary.icon && <span className="nudge"><Icon name={primary.icon} size={18} /></span>}
+          {primary.label}
+        </button>
+      </div>
+    </footer>
   </div>;
 }

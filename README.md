@@ -12,13 +12,17 @@ This is a community export adapter. It implements a focused privacy workflow ins
 
 ## Use the demo
 
-1. Download the synthetic JSONL file. Drop the downloaded file into the app, choose it with the file picker, or drop/paste its published URL. **Load sample** offers the same real import without a download.
-2. Review the source and choose the data types to clean. The default policy covers emails, phones, US Social Security numbers, and credit-card patterns. The public support address is an exact optional exception.
-3. Run the export. Compare actual before/after messages and inspect the metadata review.
-4. Download the training JSONL, privacy receipt, or ZIP bundle.
-5. Change a policy and rerun the same source. Use **Test a blocked release** to intentionally exercise a processing failure; that run cannot download a release.
+The screen follows five steps: **Upload → Original → DataFog → Cleaned → Download**.
 
-The selected synthetic source is remembered in browser storage. A later visit can reimport the saved file into a fresh backend session. Remove/trash clears the app's saved copy and upload state. Files already saved in your computer's Downloads folder are managed by your browser or operating system.
+1. **Upload.** Download the synthetic sample, then drop it on the app or choose it with the file picker. Dropping the published sample URL also works. **Use sample** imports the same file without a download.
+2. **Original.** Read the source conversations exactly as imported into lance-context. The rules button sets the data types to remove; the default covers emails, phones, US Social Security numbers, and credit-card patterns, and keeps the public support address as an exact exception.
+3. **Apply DataFog.** Core runs on the export. When the real response arrives, each detected value lights up in place, then turns into its replacement token.
+4. **Cleaned.** Switch between Original and Cleaned to compare. On wide screens both columns show side by side.
+5. **Download.** Get the training JSONL, privacy receipt, or ZIP bundle.
+
+Changing a rule marks the result out of date until you rerun. **Test blocked run** in the rules menu intentionally exercises a processing failure; that run cannot download a release.
+
+The selected synthetic source is remembered in browser storage. A later visit can reimport the saved file into a fresh backend session. The trash button clears the app's saved copy and upload state. Files already saved in your computer's Downloads folder are managed by your browser or operating system.
 
 **Use synthetic data only on the public demo.** Uploaded text is sent to this demo's Python server. It is never sent to Workers AI. The backend's temporary state can expire; the browser source cache remains until removed. Run locally to evaluate your own data under your own controls.
 
