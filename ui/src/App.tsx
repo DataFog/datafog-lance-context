@@ -396,10 +396,10 @@ export default function App() {
     ? { label: stage === 'importing' ? 'Importing' : 'Loading file', action: () => undefined, disabled: true, spinner: true }
     : sampleError
     ? { label: 'Retry sample', action: () => void preloadSample(), disabled: locked }
-    : { label: sampleLoading ? 'Loading sample' : 'View original', action: () => sample && void importText(sample.content, SAMPLE_NAME), disabled: locked || !sample, spinner: sampleLoading };
+    : { label: sampleLoading ? 'Loading sample' : 'Start demo', action: () => sample && void importText(sample.content, SAMPLE_NAME), disabled: locked || !sample, spinner: sampleLoading };
   else if (step === 1) primary = stage === 'expired'
     ? { label: 'Reimport', action: () => input.current && void importText(input.current.content, input.current.filename), disabled: locked || !input.current }
-    : { label: stage === 'stale' ? 'Rerun DataFog' : 'Apply DataFog', action: () => void runExport(), disabled: locked || policy.entities.length === 0 };
+    : { label: stage === 'stale' ? 'Rerun DataFog' : 'Redact PII', action: () => void runExport(), disabled: locked || policy.entities.length === 0 };
   else if (step === 2) primary = { label: 'Cleaning', action: () => undefined, disabled: true, spinner: true };
   else if (step === 3) primary = run?.status === 'blocked'
     ? { label: 'Retry', action: () => void runExport(), disabled: locked }

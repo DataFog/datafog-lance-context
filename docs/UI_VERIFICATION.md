@@ -3,7 +3,7 @@
 The preloaded-source revision was checked locally on October 29, 2026:
 
 - A fresh visit loads the public sample into memory and shows its filename, JSONL type, 8 conversations, and 16 messages.
-- View original imports that file into real Lance; the default policy still produces 17 replacements.
+- Start demo imports that file into real Lance; the default policy still produces 17 replacements.
 - A saved custom upload stays available as a secondary action while the sample remains the default.
 - Download sample saves the file and browser copy; clearing and reloading removes that saved copy without removing the public sample.
 - At a measured 321px viewport, the source screen has no horizontal page overflow and its controls are 44–52px high.

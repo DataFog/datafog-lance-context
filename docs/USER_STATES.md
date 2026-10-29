@@ -5,7 +5,7 @@ Map the states this demo can actually reach. Keep this table aligned with UI/API
 | State | Visible result | Allowed next actions | Recovery/proof |
 | --- | --- | --- | --- |
 | Source loading | Support conversations sample card with a loading state | Wait or upload another JSONL | Fetch static sample bytes into memory; do not create a Lance dataset or write browser storage |
-| Source ready | Support conversations, actual filename, JSONL format, conversation and message counts, Ready to review | View original; secondary upload; File options for optional source saving/cache clearing; drop file or sample URL | View original imports the shown sample into real Lance; no source download is required |
+| Source ready | Support conversations, actual filename, JSONL format, conversation and message counts, Ready to review | Start demo; secondary upload; File options for optional source saving/cache clearing; drop file or sample URL | Start demo imports the shown sample into real Lance; no source download is required |
 | Saved browser file | Separate filename and saved date for a cached custom source | Load saved file, remove saved file, continue with public sample | Public sample stays the default; cache stores source text only; importing creates a fresh real backend context |
 | Sample unavailable | Actionable sample-loading error | Retry or upload another JSONL | No import or successful preload claimed after a fetch failure |
 | Fetching sample | Explicit sample download in progress | Wait | Successful download also saves its source in browser storage |
@@ -19,9 +19,9 @@ Map the states this demo can actually reach. Keep this table aligned with UI/API
 | Expired session | Container no longer has this source/run | Reimport preserved input | Never silently present old data as a fresh run |
 | Network failure | Recoverable connection error | Retry, reimport | No ready state inferred from timeout |
 | Download failure | Output retrieval error | Retry or rerun if expired | Receipt/hash is evidence, not successful browser download |
-| Replaced/reset input | Previous source and release state cleared; public sample available | View original for the sample or import another input | Pending responses ignored if they refer to older input/policy; a late preload cannot replace an active import |
+| Replaced/reset input | Previous source and release state cleared; public sample available | Start demo for the sample or import another input | Pending responses ignored if they refer to older input/policy; a late preload cannot replace an active import |
 | Browser storage unavailable | Source works for this visit with a storage notice | Continue import or clear older browser storage | Quota/private-mode errors do not prevent real processing |
-| Saved file removed | Browser source cache and current workspace cleared; public sample still available | View original, download sample, upload another JSONL | Preload does not recreate the removed cache; OS Downloads remain managed by the browser/user |
+| Saved file removed | Browser source cache and current workspace cleared; public sample still available | Start demo, download sample, upload another JSONL | Preload does not recreate the removed cache; OS Downloads remain managed by the browser/user |
 
 Desktop drag-and-drop, keyboard file selection, URL loading, mobile input, keyboard focus, and reduced motion are part of the supported UI. A URL dragged from a browser can be a text/uri-list rather than a File: handle both by fetching the allowed public fixture URL. Also provide a normal download link because operating systems differ in URL drag behavior.
 

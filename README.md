@@ -14,9 +14,9 @@ This is a community export adapter. It implements a focused privacy workflow ins
 
 The screen follows five steps: **Source → Original → DataFog → Cleaned → Download**.
 
-1. **Source.** The app preloads the public **Support conversations** sample into memory and shows its filename, JSONL format, conversation and message counts, and **Ready to review** status. **View original** imports that file into real Lance. **Upload another JSONL** and a saved custom-file action provide other source choices. Optional **Save source file** and browser-cache controls are in **File options**. Dropping a JSONL file or the published sample URL onto the app also works.
+1. **Source.** The app preloads the public **Support conversations** sample into memory and shows its filename, JSONL format, conversation and message counts, and **Ready to review** status. **Start demo** imports that file into real Lance. **Upload another JSONL** and a saved custom-file action provide other source choices. Optional **Save source file** and browser-cache controls are in **File options**. Dropping a JSONL file or the published sample URL onto the app also works.
 2. **Original.** Read the source conversations exactly as imported into lance-context. The rules button sets the data types to remove; the default covers emails, phones, US Social Security numbers, and credit-card patterns, and keeps the public support address as an exact exception.
-3. **Apply DataFog.** Core runs on the export. When the real response arrives, each detected value lights up in place, then turns into its replacement token.
+3. **Redact PII.** Core runs on the export. When the real response arrives, each detected value lights up in place, then turns into its replacement token.
 4. **Cleaned.** Switch between Original and Cleaned to compare. On wide screens both columns show side by side.
 5. **Download.** Get the training JSONL, privacy receipt, or ZIP bundle.
 
