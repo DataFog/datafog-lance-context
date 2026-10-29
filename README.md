@@ -12,9 +12,9 @@ This is a community export adapter. It implements a focused privacy workflow ins
 
 ## Use the demo
 
-The screen follows five steps: **Upload → Original → DataFog → Cleaned → Download**.
+The screen follows five steps: **Source → Original → DataFog → Cleaned → Download**.
 
-1. **Upload.** Download the synthetic sample, then drop it on the app or choose it with the file picker. Dropping the published sample URL also works. **Use sample** imports the same file without a download.
+1. **Source.** The app preloads the public **Support conversations** sample into memory and shows its filename, JSONL format, and conversation and message counts. **View original** imports that file into real Lance. **Upload another JSONL** and a saved custom-file action provide other source choices. You can also download the sample or drop a JSONL file or the published sample URL onto the app.
 2. **Original.** Read the source conversations exactly as imported into lance-context. The rules button sets the data types to remove; the default covers emails, phones, US Social Security numbers, and credit-card patterns, and keeps the public support address as an exact exception.
 3. **Apply DataFog.** Core runs on the export. When the real response arrives, each detected value lights up in place, then turns into its replacement token.
 4. **Cleaned.** Switch between Original and Cleaned to compare. On wide screens both columns show side by side.
@@ -22,7 +22,7 @@ The screen follows five steps: **Upload → Original → DataFog → Cleaned →
 
 Changing a rule marks the result out of date until you rerun. **Test blocked run** in the rules menu intentionally exercises a processing failure; that run cannot download a release.
 
-The selected synthetic source is remembered in browser storage. A later visit can reimport the saved file into a fresh backend session. The trash button clears the app's saved copy and upload state. Files already saved in your computer's Downloads folder are managed by your browser or operating system.
+Preloading keeps the public sample in memory; it does not write browser storage or create a Lance dataset. Downloading or importing a source saves its content, filename, and saved date in browser storage. A later visit can reimport a saved custom file into a fresh backend session; the public sample stays the default source. The trash button clears the app's saved copy and current workspace, while the public sample remains available. Files already saved in your computer's Downloads folder are managed by your browser or operating system.
 
 **Use synthetic data only on the public demo.** Uploaded text is sent to this demo's Python server. It is never sent to Workers AI. The backend's temporary state can expire; the browser source cache remains until removed. Run locally to evaluate your own data under your own controls.
 

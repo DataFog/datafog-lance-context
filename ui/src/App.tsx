@@ -18,6 +18,7 @@ type Run = {
 };
 type Notice = { message: string; type: 'error' | 'info' } | null;
 type SavedInput = { content: string; filename: string; savedAt: string };
+type SamplePreview = { content: string; conversations: number; messages: number };
 type Mark = 'plain' | 'hit' | 'struck' | 'token';
 
 const SAMPLE_PATH = '/samples/support-conversations-v1.jsonl';
@@ -26,7 +27,7 @@ const PUBLIC_SAMPLE = `https://datafog-lance-context.sid-5af.workers.dev${SAMPLE
 const GENERATOR_SAMPLE = `https://datafog-lance-context-generator.sid-5af.workers.dev${SAMPLE_PATH}`;
 const SOURCE_CACHE_KEY = 'datafog-lance-context:synthetic-source:v1';
 const MAX_INPUT_BYTES = 2 * 1024 * 1024;
-const STEPS = ['Upload', 'Original', 'DataFog', 'Cleaned', 'Download'] as const;
+const STEPS = ['Source', 'Original', 'DataFog', 'Cleaned', 'Download'] as const;
 const entityOptions = [
   { id: 'EMAIL', label: 'Email' }, { id: 'PHONE', label: 'Phone' }, { id: 'SSN', label: 'SSN' }, { id: 'CREDIT_CARD', label: 'Card' },
   { id: 'IP_ADDRESS', label: 'IP' }, { id: 'DATE', label: 'Date' }, { id: 'ZIP_CODE', label: 'ZIP' },
@@ -146,7 +147,11 @@ export default function App() {
   const [failureTest, setFailureTest] = useState(false);
   const [filename, setFilename] = useState('');
   const [savedInput, setSavedInput] = useState<SavedInput | null>(null);
+  const [sample, setSample] = useState<SamplePreview | null>(null);
+  const [sampleLoading, setSampleLoading] = useState(true);
+  const [sampleError, setSampleError] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  const sampleController = useRef<AbortController | null>(null);
   const controller = useRef<AbortController | null>(null);
   const generation = useRef(0);
   const revealTimer = useRef<number | undefined>(undefined);
@@ -161,9 +166,11 @@ export default function App() {
   const withheld = (run?.metadata_review || []).filter(item => item.action === 'omitted').length;
   const count = useCountUp(replacements, step === 3 && view === 'clean' && !revealing && run?.status === 'ready');
   const intentionalFailure = failureTest && run?.error?.code === 'injected_failure';
+  const savedSample = savedInput?.filename === SAMPLE_NAME && savedInput.content === sample?.content;
 
   useEffect(() => {
     api<{ versions: Versions }>('/api/health').then(result => setVersions(result.versions)).catch(() => undefined);
+    void preloadSample();
     try {
       const value = localStorage.getItem(SOURCE_CACHE_KEY);
       if (value) {
@@ -172,7 +179,7 @@ export default function App() {
         else localStorage.removeItem(SOURCE_CACHE_KEY);
       }
     } catch { /* Storage can be unavailable in private or restricted browsers. */ }
-    return () => { controller.current?.abort(); window.clearTimeout(revealTimer.current); };
+    return () => { controller.current?.abort(); sampleController.current?.abort(); window.clearTimeout(revealTimer.current); };
   }, []);
 
   useEffect(() => {
@@ -242,6 +249,23 @@ export default function App() {
     return response.text();
   }
 
+  async function preloadSample() {
+    sampleController.current?.abort();
+    const current = new AbortController();
+    sampleController.current = current;
+    setSampleLoading(true); setSampleError(false);
+    try {
+      const content = await fetchSampleText(SAMPLE_PATH, current.signal);
+      const rows = content.split('\n').filter(line => line.trim()).map(line => JSON.parse(line) as Conversation);
+      if (current.signal.aborted) return;
+      setSample({ content, conversations: rows.length, messages: rows.reduce((total, row) => total + row.messages.length, 0) });
+    } catch {
+      if (!current.signal.aborted) setSampleError(true);
+    } finally {
+      if (!current.signal.aborted) setSampleLoading(false);
+    }
+  }
+
   async function loadSample(url = SAMPLE_PATH) {
     const request = newRequest();
     setStage('fetching'); setNotice(null);
@@ -263,7 +287,7 @@ export default function App() {
     if (locked) return;
     const request = newRequest(); setStage('fetching'); setNotice(null);
     try {
-      const content = await fetchSampleText(SAMPLE_PATH, request.signal);
+      const content = sample?.content ?? await fetchSampleText(SAMPLE_PATH, request.signal);
       if (request.id !== generation.current) return;
       const saved = cacheSource(content, SAMPLE_NAME);
       saveBlob(new Blob([content], { type: 'application/x-ndjson' }), SAMPLE_NAME);
@@ -367,9 +391,11 @@ export default function App() {
   const rawMark: Mark = !hasResult || run?.status !== 'ready' ? 'plain' : revealing || showBoth ? 'hit' : 'struck';
 
   let primary: { label: string; action: () => void; disabled?: boolean; icon?: string; spinner?: boolean };
-  if (step === 0) primary = savedInput
-    ? { label: stage === 'importing' || stage === 'fetching' ? 'Importing' : 'Use saved copy', action: () => void importText(savedInput.content, savedInput.filename), disabled: locked, spinner: busy }
-    : { label: stage === 'importing' || stage === 'fetching' ? 'Importing' : 'Use sample', action: () => void loadSample(), disabled: locked, spinner: busy };
+  if (step === 0) primary = busy
+    ? { label: stage === 'importing' ? 'Importing' : 'Loading file', action: () => undefined, disabled: true, spinner: true }
+    : sampleError
+    ? { label: 'Retry sample', action: () => void preloadSample(), disabled: locked }
+    : { label: sampleLoading ? 'Loading sample' : 'View original', action: () => sample && void importText(sample.content, SAMPLE_NAME), disabled: locked || !sample, spinner: sampleLoading };
   else if (step === 1) primary = stage === 'expired'
     ? { label: 'Reimport', action: () => input.current && void importText(input.current.content, input.current.filename), disabled: locked || !input.current }
     : { label: stage === 'stale' ? 'Rerun DataFog' : 'Apply DataFog', action: () => void runExport(), disabled: locked || policy.entities.length === 0 };
@@ -395,21 +421,33 @@ export default function App() {
     <main className="stage" key={step === 4 ? 'download' : step === 0 ? 'upload' : 'review'}>
       {step === 0 && <section className="upload" {...dropProps}>
         <h1>Conversations in.<br /><span>Training data out.</span></h1>
-        <button type="button" className={`dropzone ${dragging ? 'dragging' : ''} ${busy ? 'busy' : ''}`} onClick={() => fileInput.current?.click()} disabled={locked}>
-          <span className="drop-file"><Icon name={busy ? 'upload' : 'file'} size={18} /><span>{busy ? filename || SAMPLE_NAME : 'JSONL'}</span></span>
-          <span className="drop-label">{busy ? 'Importing' : <>Drop JSONL or <u>choose file</u></>}</span>
-        </button>
-        <div className="source-list">
-          <div className="source-row">
-            <span className="source-copy"><strong>Sample</strong><small>8 conversations · JSONL</small></span>
-            <a href={SAMPLE_PATH} download={SAMPLE_NAME} draggable className="icon-button" aria-label="Download sample" aria-disabled={locked} onClick={event => { event.preventDefault(); void downloadSample(); }}><Icon name="download" size={20} /></a>
+        <div className={`sample-card ${dragging ? 'dragging' : ''}`} aria-label="Preloaded sample file" aria-busy={sampleLoading}>
+          <div className="sample-heading">
+            <span className="file-badge"><Icon name="file" size={26} /></span>
+            <div><span className="sample-label">Sample file</span><h2>Support conversations</h2></div>
+            <span className="file-type">JSONL</span>
           </div>
-          {savedInput && <div className="source-row saved">
-            <span className="source-copy"><strong>Saved copy</strong><small>{savedInput.filename} · {formatSaved(savedInput.savedAt)}</small></span>
-            <button className="pill-button" disabled={locked} onClick={() => void importText(savedInput.content, savedInput.filename)}>Use</button>
-            <button className="icon-button" aria-label="Clear saved copy" disabled={locked} onClick={clearSaved}><Icon name="trash" size={19} /></button>
-          </div>}
+          <code className="sample-filename">{SAMPLE_NAME}</code>
+          {sample && <dl className="sample-stats">
+            <div><dt>conversations</dt><dd>{sample.conversations}</dd></div>
+            <div><dt>messages</dt><dd>{sample.messages}</dd></div>
+          </dl>}
+          {sampleError && <p className="field-error" role="alert">Sample unavailable. Retry or upload another JSONL.</p>}
+          {(sampleLoading || busy) && <p className="sample-status" role="status"><span className="spinner" />{stage === 'importing' ? `Importing ${filename || SAMPLE_NAME}` : 'Loading file'}</p>}
+          <div className="sample-actions">
+            <a href={SAMPLE_PATH} download={SAMPLE_NAME} draggable className="outline-button" aria-disabled={locked} onClick={event => { event.preventDefault(); void downloadSample(); }}><Icon name="download" size={18} />Download sample</a>
+            {savedSample && <button className="icon-button" aria-label="Clear saved copy" disabled={locked} onClick={clearSaved}><Icon name="trash" size={19} /></button>}
+          </div>
+          {savedSample && <span className="sample-status">Saved in browser</span>}
         </div>
+        {savedInput && !savedSample && <div className="source-list">
+          <div className="source-row saved">
+            <span className="source-copy"><strong>Saved file</strong><small>{savedInput.filename} · {formatSaved(savedInput.savedAt)}</small></span>
+            <button className="pill-button" disabled={locked} onClick={() => void importText(savedInput.content, savedInput.filename)}>Use saved file</button>
+            <button className="icon-button" aria-label="Clear saved copy" disabled={locked} onClick={clearSaved}><Icon name="trash" size={19} /></button>
+          </div>
+        </div>}
+        <button type="button" className={`text-button upload-another ${dragging ? 'dragging' : ''}`} onClick={() => fileInput.current?.click()} disabled={locked}><Icon name="upload" size={18} />Upload another JSONL</button>
       </section>}
 
       {(step === 1 || step === 2 || step === 3) && dataset && <section className={`review ${dragging ? 'dragging' : ''}`} {...dropProps}>

@@ -4,10 +4,11 @@ Map the states this demo can actually reach. Keep this table aligned with UI/API
 
 | State | Visible result | Allowed next actions | Recovery/proof |
 | --- | --- | --- | --- |
-| Connecting | Backend health and actual dependency versions loading | Read sample instructions | Retry if offline/cold start; do not claim engine ready |
-| Empty | Drop zone and sample controls | Load published sample, drop file, choose file, paste sample URL | Download remains static and public |
-| Saved browser file | Filename and saved date for a cached synthetic source | Load saved file, download sample, remove saved file | Cache stores source text only; importing creates a fresh real backend context |
-| Fetching sample | Sample download in progress | Wait or choose local file | Fetch error offers retry/direct download |
+| Source loading | Support conversations sample card with a loading state | Wait or upload another JSONL | Fetch static sample bytes into memory; do not create a Lance dataset or write browser storage |
+| Source ready | Support conversations, actual filename, JSONL format, conversation and message counts | View original, download sample, upload another JSONL, drop file or sample URL | View original imports the shown sample into real Lance |
+| Saved browser file | Separate filename and saved date for a cached custom source | Load saved file, remove saved file, continue with public sample | Public sample stays the default; cache stores source text only; importing creates a fresh real backend context |
+| Sample unavailable | Actionable sample-loading error | Retry or upload another JSONL | No import or successful preload claimed after a fetch failure |
+| Fetching sample | Explicit sample download in progress | Wait | Successful download also saves its source in browser storage |
 | Importing | JSONL validation and real Lance import | Wait | Invalidates no completed release for the new input |
 | Invalid file | Row number and safe reason | Correct/retry/reset | No raw text in backend errors; retain recoverable UI |
 | Imported | Source snapshot, conversation list, raw messages, current policy | Inspect, edit policy, run export, replace input | Real context version shown |
@@ -18,10 +19,10 @@ Map the states this demo can actually reach. Keep this table aligned with UI/API
 | Expired session | Container no longer has this source/run | Reimport preserved input | Never silently present old data as a fresh run |
 | Network failure | Recoverable connection error | Retry, reimport | No ready state inferred from timeout |
 | Download failure | Output retrieval error | Retry or rerun if expired | Receipt/hash is evidence, not successful browser download |
-| Replaced/reset input | Clear previous source and release state | Import new input | Pending responses ignored if they refer to older input/policy |
+| Replaced/reset input | Previous source and release state cleared; public sample available | View original for the sample or import another input | Pending responses ignored if they refer to older input/policy; a late preload cannot replace an active import |
 | Browser storage unavailable | Source works for this visit with a storage notice | Continue import or clear older browser storage | Quota/private-mode errors do not prevent real processing |
-| Saved file removed | App cache, upload slot, source, and release cleared | Download or choose a new source | OS Downloads remain managed by the browser/user |
+| Saved file removed | Browser source cache and current workspace cleared; public sample still available | View original, download sample, upload another JSONL | Preload does not recreate the removed cache; OS Downloads remain managed by the browser/user |
 
 Desktop drag-and-drop, keyboard file selection, URL loading, mobile input, keyboard focus, and reduced motion are part of the supported UI. A URL dragged from a browser can be a text/uri-list rather than a File: handle both by fetching the allowed public fixture URL. Also provide a normal download link because operating systems differ in URL drag behavior.
 
-The selected source is remembered in localStorage at the user's request. Save only the synthetic source content, filename, and saved date. Never persist backend session IDs or claim a cached source has already been processed on a new visit. Removing the saved file clears the browser copy and current UI; ordinary web pages cannot trash an already downloaded operating-system file.
+The public sample is preloaded into memory only. An explicit download or import remembers the source in localStorage at the user's request. Save only the source content, filename, and saved date. Never persist backend session IDs or claim a preloaded or cached source has already been processed on a new visit. Removing the saved file clears the browser copy and current workspace without removing access to the public sample; ordinary web pages cannot trash an already downloaded operating-system file.
