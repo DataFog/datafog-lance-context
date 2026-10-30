@@ -1,3 +1,11 @@
+# Light code-to-table layout — October 30, 2026
+
+The main view now emphasizes the resulting table: row_id plus orange-tinted has_pii and pii_types columns. A smaller code excerpt shows the actual Core call inside the MLE’s ingestion function. Full source and run metadata are collapsed below the main view. There is no main terminal or numbered sequence. The approved heading is unchanged.
+
+Saved results still load immediately. Filtering selects actual row/chunk keys. Optional live execution uses the same endpoint and preserves prior results during pending or failed attempts. The design uses a white background and black LanceDB mark. TypeScript/Vite build passes; the underlying backend is unchanged. Checks at 321px and 390px confirm no page overflow, all three table columns fit, and the table appears before the code on phones. Selection yields two false-flag rows. Expanded full implementation uses the full footer width.
+
+## Earlier integration verification
+
 # Ingestion UI verification — October 30, 2026
 
 The page now starts with the bundled last verified hosted response, labeled SAVED RESULT, preserving its actual job ID and original recorded duration. All six rows and the two-row filter are available immediately after reload. The only ingestion fetch remains inside the optional Run live ingestion click handler. Pending and failed live attempts retain the previous result and identify it as previous; successful live output changes the label to LIVE RESULT. The live action uses secondary styling.

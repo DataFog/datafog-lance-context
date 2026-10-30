@@ -8,7 +8,7 @@ The page opens with the last saved, verified hosted result: six synthetic traini
 
 **Run live ingestion** is optional. Six new synthetic documents enter the source table. Geneva executes `prepare_training_rows` as a row-producing chunker UDF and writes the resulting training rows to a materialized Lance table in private R2 storage. Four rows are flagged; two have no selected patterns detected. There is no separate privacy UDF or privacy-column backfill.
 
-The UI shows the ingestion UDF, its output schema and pipeline in one continuous view, with code that folds open in place, plus the real job result and a raw terminal table of the PII fields. **Apply filter** selects actual clean-pattern row keys, including chunk indices. A false flag only reflects the configured patterns. Public runs accept no uploads or arbitrary code.
+The light UI pairs a short excerpt from the MLE’s existing UDF with a larger training table. The two added columns, `has_pii` and `pii_types`, are highlighted. On phones the table comes first. Full implementation, job details and the optional live run sit below the main view. **Apply filter** selects actual clean-pattern row keys, including chunk indices. A false flag only reflects the configured patterns. Public runs accept no uploads or arbitrary code.
 
 This is self-hosted Geneva on a single Cloudflare Ray runtime, with R2-backed tables. Each run processes a source batch snapshot; it does not claim Enterprise auto-refresh. The existing weekly request and runtime limits remain in place. See [deployment plan](docs/GENEVA_DEPLOYMENT.md).
 

@@ -7,7 +7,7 @@
 - Error: the failed live attempt is shown at the top of the terminal; the previous successful result stays visible, clearly labeled, and retry is available.
 - Allowance ended: no new compute starts after expiry or request exhaustion.
 
-Desktop uses code on the left and terminal on the right. Phone layouts put terminal controls first and keep wide tables inside their own scroll area. Heading and LanceDB styling stay unchanged.
+Desktop pairs a short UDF excerpt with a larger table. Two orange-tinted columns show what DataFog adds. Phones put the table above the code. Full implementation expands actual source and run details. Live execution is a secondary footer action. Heading stays unchanged; the design uses a light LanceDB palette.
 
 ## Historical export workflow
 

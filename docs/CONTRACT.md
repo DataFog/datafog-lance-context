@@ -4,9 +4,9 @@ The MLE's document-to-row UDF prepares training chunks and scans each chunk with
 
 A run appends six new synthetic source documents, creates a derived training table for that source batch snapshot, runs the UDF, waits for its refresh job, and queries the committed output. Missing input raises. Missing output for any fixture or null privacy metadata fails the run. The UI uses chunk-level keys for filtering, so a clean chunk cannot accidentally select a flagged sibling from the same document.
 
-The default UI preloads the saved verified hosted response without calling the API. It labels the snapshot SAVED RESULT and its timing Recorded run. Run live ingestion is optional; the prior successful result remains visible through pending and failed attempts, with a previous-run label. New successful live output is labeled LIVE RESULT.
+The default UI preloads the saved verified hosted response without calling the API. It labels the snapshot Saved result; timing remains inspectable inside Full implementation. Run live ingestion is optional; the prior successful result remains visible through pending and failed attempts, with a previous-run label. New successful live output is labeled Live result.
 
-The terminal shows actual output schema, job ID, row annotations and committed version. Pending and failed requests never claim completion. Self-hosted execution, fixed fixtures, private storage, cache/retry rules and weekly cost bounds remain as documented in [deployment plan](GENEVA_DEPLOYMENT.md).
+The main view uses a light code-to-table layout, emphasizing the two added fields. Full implementation contains actual source, job ID, versions and elapsed time; the main table contains only row identity and PII annotations. Pending and failed requests never claim completion. Self-hosted execution, fixed fixtures, private storage, cache/retry rules and weekly cost bounds remain as documented in [deployment plan](GENEVA_DEPLOYMENT.md).
 
 ## Historical export-adapter contract
 
