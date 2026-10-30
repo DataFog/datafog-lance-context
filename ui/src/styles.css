@@ -354,6 +354,7 @@ h2 {
 .terminal-body p {
   margin-bottom: 14px;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 .terminal-body pre {
   padding: 12px 0 24px;

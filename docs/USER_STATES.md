@@ -1,12 +1,14 @@
 # Current enrichment states
 
-- Ready: UDF, ingestion integration sketch, planned schema fields, and an idle terminal. No results are claimed before execution.
+- Ready: UDF, actual registration/backfill code, planned schema fields, and an idle terminal. No results are claimed before execution.
 - Running: real POST /api/enrichment pending; duplicate runs disabled and prior results cleared.
-- Complete: actual typed table rows, schema, package versions, commit version, measured duration, and counts.
+- Complete: actual typed table rows, schema, package versions, job ID, commit version, measured duration, and counts.
 - Filtered: rows selected by the real LanceDB has_PII = false query; Show all rows restores the full result.
-- Error: safe retry message, no success output; Run enrichment retries.
+- Error: safe retry message, no success output; Run backfill retries.
 
 Desktop uses code/schema on the left and terminal on the right. At phone width, terminal controls appear first and code/schema follows. Wide tables scroll inside their container.
+
+- Allowance ended: an expired week or used run allowance returns a clear error without starting compute.
 
 ## Historical export workflow
 

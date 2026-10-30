@@ -1,0 +1,76 @@
+{
+  "rows": [
+    {
+      "asset_id": "doc_001",
+      "source_uri": "s3://datafog-lance-geneva-demo/synthetic/manuals/product-guide.txt",
+      "split": "train",
+      "has_PII": false,
+      "pii_types": []
+    },
+    {
+      "asset_id": "doc_002",
+      "source_uri": "s3://datafog-lance-geneva-demo/synthetic/forms/vendor-contact.txt",
+      "split": "train",
+      "has_PII": true,
+      "pii_types": [
+        "EMAIL",
+        "PHONE"
+      ]
+    },
+    {
+      "asset_id": "doc_003",
+      "source_uri": "s3://datafog-lance-geneva-demo/synthetic/forms/onboarding.txt",
+      "split": "train",
+      "has_PII": true,
+      "pii_types": [
+        "SSN"
+      ]
+    },
+    {
+      "asset_id": "doc_004",
+      "source_uri": "s3://datafog-lance-geneva-demo/synthetic/receipts/payment-04.txt",
+      "split": "train",
+      "has_PII": true,
+      "pii_types": [
+        "CREDIT_CARD"
+      ]
+    },
+    {
+      "asset_id": "doc_005",
+      "source_uri": "s3://datafog-lance-geneva-demo/synthetic/procedures/quality-check.txt",
+      "split": "train",
+      "has_PII": false,
+      "pii_types": []
+    },
+    {
+      "asset_id": "doc_006",
+      "source_uri": "s3://datafog-lance-geneva-demo/synthetic/notes/project-review.txt",
+      "split": "train",
+      "has_PII": true,
+      "pii_types": [
+        "EMAIL"
+      ]
+    }
+  ],
+  "source_schema": "asset_id: string\nsource_uri: string\nsplit: string\ntext: string",
+  "schema": "asset_id: string\nsource_uri: string\nsplit: string\ntext: string\nhas_PII: bool\npii_types: list<item: string>\n  child 0, item: string",
+  "source_version": 1,
+  "version": 4,
+  "table_name": "training_data_01ae287647724a0cb2306567bf8200a5",
+  "flagged": 4,
+  "selected_ids": [
+    "doc_001",
+    "doc_005"
+  ],
+  "duration_ms": 119362,
+  "versions": {
+    "lancedb": "0.41.0",
+    "geneva": "0.17.0",
+    "datafog_core": "0.5.0b3"
+  },
+  "job_id": "b68b160a9e844d4aa3518f87ad6cf844",
+  "job_status": "DONE",
+  "udf": "class PIIColumns(NamedTuple):\n    has_PII: bool\n    pii_types: list[str]\n\n\n@udf(version=\"datafog-core-0.5.0b3\", num_cpus=0.25)\ndef detect_pii(text: Optional[str]) -> Columns[PIIColumns]:\n    if text is None:\n        raise ValueError(\"Missing extracted text; do not mark this row clean.\")\n    findings = scan(text, {\"entities\": [\"EMAIL\", \"PHONE\", \"SSN\", \"CREDIT_CARD\"]})\n    return PIIColumns(bool(findings), sorted({item.entity_type for item in findings}))\n",
+  "pipeline": "def register_and_backfill(table):\n    table.add_columns(detect_pii)\n    job = table.backfill_async(\"has_PII\", concurrency=1)\n    job.result(timeout=180)\n    table.checkout_latest()\n    return job\n",
+  "execution": "Self-hosted Geneva \u00b7 Cloudflare Ray runtime \u00b7 R2 tables"
+}

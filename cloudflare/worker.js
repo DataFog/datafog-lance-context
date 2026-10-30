@@ -1,13 +1,39 @@
 import {Container} from '@cloudflare/containers';
+export {ContainerProxy} from '@cloudflare/containers';
 import {boundApiRequest} from './request-body.js';
+import {r2S3} from './r2-s3.js';
 
 export class LanceDemoContainer extends Container {
   defaultPort = 8080;
-  // Runtime uploads stay in the engine; only the separate fixture generator uses AI.
   enableInternet = false;
-  // Keep an in-memory source available during a live meeting; idle instances sleep.
-  sleepAfter = '20m';
+  sleepAfter = '1m';
+  envVars = {GENEVA_DATABASE_URI: 's3://datafog-lance-geneva-demo/lance', GENEVA_STORAGE_ENDPOINT: 'http://r2.internal', AWS_EC2_METADATA_DISABLED: 'true', RAY_USAGE_STATS_ENABLED: '0', OPENBLAS_NUM_THREADS: '1', OMP_NUM_THREADS: '1'};
+  async onStart() {
+    const generation = crypto.randomUUID();
+    await this.ctx.storage.put('generation', generation);
+    // Forty starts of at most ten minutes bound container compute to 6h40m.
+    await this.schedule(600, 'stopForBudget', generation);
+  }
+  async stopForBudget(generation) {
+    if (await this.ctx.storage.get('generation') === generation) await this.destroy();
+  }
+  async fetch(request) {
+    if (this.running) return Response.json({error: {message: 'A backfill is running. Retry shortly.'}}, {status: 409});
+    this.running = true;
+    try {
+      const accepted = await this.ctx.storage.transaction(async storage => {
+        const runs = (await storage.get('runs')) || 0;
+        if (Date.now() >= Date.parse(this.env.DEMO_EXPIRES_AT) || runs >= 40) return false;
+        await storage.put('runs', runs + 1);
+        return true;
+      });
+      if (!accepted) return Response.json({error: {message: 'This week’s demo run allowance has ended.'}}, {status: 429});
+      return await super.fetch(request);
+    } finally { this.running = false; }
+  }
 }
+// Use the SDK setter so ContainerProxy's separate isolate registers the handler.
+LanceDemoContainer.outboundByHost = {'r2.internal': r2S3};
 
 const SAMPLE_FILES = new Set([
   '/samples/support-conversations-v1.jsonl',
@@ -42,6 +68,11 @@ export default {
       return new Response(response.body, {status: response.status, headers: response.ok ? publicSampleHeaders(url.pathname, response.headers) : response.headers});
     }
     if (url.pathname.startsWith('/api/')) {
+      if (url.pathname === '/api/health' && request.method === 'GET') {
+        return Response.json({status: 'ok', execution: 'Self-hosted Geneva on Cloudflare; R2 storage', expires_at: env.DEMO_EXPIRES_AT});
+      }
+      // Public compute is limited to the fixed synthetic backfill, with no input.
+      if (url.pathname !== '/api/enrichment' || request.method !== 'POST') return new Response('Not found', {status: 404});
       try {
         const bounded = await boundApiRequest(request);
         if (bounded instanceof Response) return bounded;

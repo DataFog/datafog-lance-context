@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import implementation from "../../src/datafog_lance_context/enrichment.py?raw";
+import implementation from "../../src/datafog_lance_context/geneva_enrichment.py?raw";
 
 type Row = {
   asset_id: string;
@@ -17,15 +17,16 @@ type Result = {
   flagged: number;
   selected_ids: string[];
   duration_ms: number;
-  versions: { lancedb: string; datafog_core: string };
+  versions: { lancedb: string; datafog_core: string; geneva: string };
   udf: string;
   execution: string;
+  job_id: string;
+  job_status: string;
+  table_name: string;
+  pipeline: string;
 };
-const udf = implementation.slice(
-  implementation.indexOf("def datafog_pii("),
-  implementation.indexOf("\n\ndef run_enrichment"),
-);
-const pipeline = `# Existing file ingestion\nrows = load_manifest("training-assets.jsonl")\ntable = db.open_table("training_data")\n\n# Add DataFog enrichment\nenriched = [\n    {**row, **datafog_pii(read_text(row["source_uri"]))}\n    for row in rows\n]\ntable.add_columns(pa.schema([\n    pa.field("has_PII", pa.bool_()),\n    pa.field("pii_types", pa.list_(pa.string())),\n]))\ntable.merge_insert("asset_id") \\\n    .when_matched_update_all().execute(enriched)`;
+const udf = implementation.slice(implementation.indexOf("class PIIColumns"), implementation.indexOf("\n\ndef register_and_backfill"));
+const pipeline = implementation.slice(implementation.indexOf("def register_and_backfill"), implementation.indexOf("\n\ndef run_geneva_enrichment"));
 const query = `table.search() \\\n    .where("has_PII = false") \\\n    .to_arrow()`;
 export default function App() {
   const [result, setResult] = useState<Result | null>(null),
@@ -43,10 +44,18 @@ export default function App() {
     setFiltered(false);
     setResult(null);
     try {
-      const response = await fetch("/api/enrichment", { method: "POST" });
-      if (!response.ok)
-        throw Error("The engine is unavailable. Retry the run.");
-      setResult(await response.json());
+      // A sleeping runtime can briefly return a proxy/startup error as it wakes.
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const response = await fetch("/api/enrichment", { method: "POST" });
+        const body = await response.json().catch(() => null);
+        if (response.ok) { setResult(body); break; }
+        const starting = response.status === 503 || (response.status === 500 && !body);
+        if (starting && attempt < 2) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          continue;
+        }
+        throw Error(body?.error?.message || "Backfill failed. Retry the run.");
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Run failed. Retry.");
     } finally {
@@ -94,7 +103,7 @@ export default function App() {
             <span>Python</span>
           </div>
           <nav className="tabs" aria-label="Code views">
-            {["UDF", "Ingestion", "Schema"].map((name) => (
+            {["UDF", "Register & backfill", "Schema"].map((name) => (
               <button
                 key={name}
                 aria-pressed={tab === name}
@@ -107,11 +116,11 @@ export default function App() {
           <pre className="code">
             <code>
               {tab === "UDF"
-                ? `from datafog_core import scan\n\nENTITIES = ["EMAIL", "PHONE", "SSN", "CREDIT_CARD"]\n\n${result?.udf || udf}`
-                : tab === "Ingestion"
-                  ? pipeline
+                ? `from typing import NamedTuple, Optional\nfrom geneva import Columns, udf\nfrom datafog_core import scan\n\n${result?.udf || udf}`
+                : tab === "Register & backfill"
+                  ? `# Existing extracted-text table in R2\n# db = geneva.connect("s3://…")\ntable = db.open_table("training_data")\n\n${result?.pipeline || pipeline}`
                   : result?.schema ||
-                    "training_data\n  asset_id: string\n  source_uri: string\n  split: string\n\n+ has_PII: bool\n+ pii_types: list<string>"}
+                    "training_data\n  asset_id: string\n  source_uri: string\n  split: string\n  text: string\n\n+ has_PII: bool\n+ pii_types: list<string>"}
             </code>
           </pre>
           <div className="schema-delta">
@@ -134,7 +143,7 @@ export default function App() {
               <div>
                 asset_id <span>source_uri</span> split
               </div>
-              <p>Run the UDF to populate the added columns.</p>
+              <p>Backfill the added columns.</p>
             </div>
           ) : (
             <div className="table-scroll">
@@ -142,16 +151,15 @@ export default function App() {
                 <thead>
                   <tr>
                     <th>asset_id</th>
-                    <th>source_uri</th>
                     <th>has_PII</th>
                     <th>pii_types</th>
+                    <th>source_uri</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((row) => (
                     <tr key={row.asset_id}>
                       <td>{row.asset_id}</td>
-                      <td>{row.source_uri}</td>
                       <td>
                         <span className={row.has_PII ? "flag yes" : "flag no"}>
                           {String(row.has_PII)}
@@ -166,6 +174,7 @@ export default function App() {
                             ))
                           : "[]"}
                       </td>
+                      <td>{row.source_uri}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -201,19 +210,19 @@ export default function App() {
               <b />
               <b />
             </div>
-            <span>local / enrichment.py</span>
+            <span>cloudflare / geneva</span>
             <span>{busy ? "RUNNING" : result ? "COMPLETE" : "READY"}</span>
           </div>
           <div ref={terminal} className="terminal-body" role="log" aria-live="polite">
             <p className="command">
-              $ uv run python examples/enrich_training_table.py
+              $ uv run python examples/backfill_training_table.py
             </p>
             {!result && !busy && !error && (
-              <p className="muted">Local LanceDB · bundled fixture files</p>
+              <p className="muted">Self-hosted Geneva · R2 table</p>
             )}
             {busy && (
               <p className="pending">
-                Executing file ingestion and PII enrichment…
+                Registering columns and running Geneva backfill…
               </p>
             )}
             {error && (
@@ -224,15 +233,17 @@ export default function App() {
             {result && (
               <>
                 <p className="muted">
-                  lancedb {result.versions.lancedb} · datafog-core{" "}
+                  geneva {result.versions.geneva} · lancedb {result.versions.lancedb} · datafog-core{" "}
                   {result.versions.datafog_core}
                 </p>
-                <p>Read {result.rows.length} source files</p>
-                <p>Created training_data · version {result.source_version}</p>
+                <p>{result.execution}</p>
+                <p>Opened {result.table_name} · v{result.source_version}</p>
                 <pre>{result.source_schema}</pre>
                 <p className="success">+ has_PII: bool</p>
                 <p className="success">+ pii_types: list&lt;string&gt;</p>
-                <p>Applied datafog_pii(text) to {result.rows.length} rows</p>
+                <p>Registered detect_pii · datafog-core-0.5.0b3</p>
+                <p>Backfill job: {result.job_id}</p>
+                <p className="success">{result.job_status} · {result.rows.length} rows materialized</p>
                 <p>Committed enrichment · version {result.version}</p>
                 <hr />
                 <p>
@@ -259,7 +270,7 @@ export default function App() {
               disabled={busy}
               onClick={() => void run()}
             >
-              {busy ? "Running UDF…" : result ? "Run again" : "Run enrichment"}
+              {busy ? "Backfilling…" : result ? "Run again" : "Run backfill"}
               <span>↵</span>
             </button>
           </div>

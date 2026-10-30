@@ -1,8 +1,10 @@
-# Enrichment UI verification — October 30, 2026
+# Geneva UI verification — October 30, 2026
 
-The current main UI replaces the conversation export walkthrough. Local checks exercised real enrichment (6 files, 4 flagged rows, 2 selected IDs), filter/show-all controls, typed schema, and terminal output. At a measured 321px width, the panes stack, the page has no horizontal overflow, and the Run enrichment control is 48px high. Desktop uses two columns. The Python suite passes 20 tests, including the new native-table integration tests.
+The deployed endpoint completed a real R2-backed Geneva backfill with Core 0.5.0b3, Geneva 0.17.0 and LanceDB 0.41.0. Job b68b160a9e844d4aa3518f87ad6cf844 returned DONE; table version advanced from 1 to 4, with six materialized rows, four flagged, and doc_001/doc_005 returned by the training filter. A separate connection to R2 confirmed the committed annotations and no recorded errors. [Raw result](../cloudflare/geneva-verification.json).
 
-The terminal reports local execution in the hosted container. No distributed LanceDB Function registration or remote backfill is claimed.
+The live run took 119,362 ms. The current UI shows the executed registration/backfill source. Phone viewport checks at 321px and 390px measured no page-width overflow; terminal controls precede code on phones. Actual output, schema and filter controls are checked in the deployed browser before handoff. Startup/proxy failures can retry automatically; application failures and exhausted allowances do not report success.
+
+Validation: 22 Python tests; 9 Worker tests, including conditional S3 commits, multipart copies, expiration, request allowance and hard-stop scheduling; TypeScript/Vite build. The package emits a Geneva/LanceDB compatibility warning for two methods not used by this flow. The actual methods used by the demo were exercised against R2.
 
 ## Historical UI verification
 

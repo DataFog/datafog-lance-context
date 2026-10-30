@@ -1,6 +1,8 @@
 # Cloudflare delivery
 
-The main Worker serves the built UI and immutable public samples. Only `/api/` requests go to a Python container, where the real `lance-context` and `datafog-core` distributions run. The separate generator Worker uses Workers AI for operator-authorized synthetic dialogue generation. Uploaded demo data is never sent to Workers AI.
+The main Worker serves the UI and immutable public samples. Only the fixed-fixture `POST /api/enrichment` reaches the Geneva container. Health checks are handled without starting compute. Tables live in a dedicated private R2 bucket through a container-only S3 transport; no storage credentials are placed in the image. The container has no general Internet access.
+
+See [the deployment plan](../docs/GENEVA_DEPLOYMENT.md) for the one-week expiry, 40-run allowance, real APIs and cost calculation. Older CLI/export APIs remain available locally; they are not routed publicly. The separate fixture-generator Worker is unchanged.
 
 ## Public fixture
 

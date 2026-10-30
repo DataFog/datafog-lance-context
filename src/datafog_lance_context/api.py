@@ -61,9 +61,10 @@ def create_app(store: DemoStore | None = None) -> FastAPI:
 
     @app.post("/api/enrichment")
     def enrichment() -> dict[str, Any]:
-        from .enrichment import RUN_LOCK, run_enrichment
+        from .enrichment import RUN_LOCK
         with RUN_LOCK:
-            return run_enrichment()
+            from .geneva_enrichment import run_geneva_enrichment
+            return run_geneva_enrichment()
 
     @app.get("/api/sample")
     def sample() -> FileResponse:

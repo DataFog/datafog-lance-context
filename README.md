@@ -2,19 +2,13 @@
 
 [Live demo](https://datafog-lance-context.sid-5af.workers.dev/) · DataFog Core 0.5.0-beta.3 · LanceDB 0.41.0
 
-The main demo shows file ingestion, a Python DataFog enrichment UDF, schema evolution, and a follow-on training-data filter. The left pane shows code and table metadata; the right pane reports the real local execution. Mobile stacks the panes.
+The main demo registers a real Geneva UDF, backfills `has_PII` and `pii_types`, and queries the committed Lance table. The table lives in a private Cloudflare R2 bucket. Ray workers run inside one Cloudflare container. This is self-hosted Geneva, not managed Enterprise.
 
-Click **Run enrichment** to create a temporary LanceDB table from six bundled source files, scan each file with Core, and materialize `has_PII` and `pii_types`. Four fixture rows contain selected PII patterns; two do not. **Apply filter** displays the IDs returned by the real LanceDB query `has_PII = false`.
+Click **Run backfill**. Six synthetic training assets yield four flagged rows and two rows with no configured PII patterns detected. **Apply filter** shows the IDs returned by the real `has_PII = false` query. The left pane shows the executed UDF, registration/backfill code and schema; the right shows the real job ID and result. Mobile stacks the panes.
 
-This is a local Python ingestion UDF followed by `add_columns` and `merge_insert`. It does not claim to register a distributed or Enterprise UDF. Inputs are synthetic, source content is not transformed, and a negative flag only reflects the selected detector patterns. No user files are uploaded in this workflow.
+The input `text` column represents an existing extraction pipeline. DataFog scans this column and preserves the original content. A negative flag only reflects the selected patterns. Public runs accept no uploads or arbitrary code. The hosted demo permits 40 runs across seven days; health and static page requests do not start compute. See [deployment plan and cost estimate](docs/GENEVA_DEPLOYMENT.md).
 
-Run the same implementation locally:
-
-```sh
-uv run python examples/enrich_training_table.py
-```
-
-The previous lance-context export adapter remains available through its CLI and API. The sections below document that adapter and its immutable sample assets; the current web UI is the enrichment workflow described above.
+The previous lance-context export adapter remains available locally through its CLI and API. Its immutable public samples remain downloadable. Hosted API access is restricted to the new fixed-fixture backfill.
 
 ## Run locally
 
@@ -38,7 +32,7 @@ npm run build
 uv run --python 3.12 uvicorn datafog_lance_context.api:app --host 127.0.0.1 --port 8134
 ```
 
-Then open `http://127.0.0.1:8134`.
+Set `GENEVA_DATABASE_URI` to an object-storage URI and configure its endpoint, or to a scratch filesystem path for local development. `npm run dev` supplies a temporary local path automatically. Hosted execution always uses R2. Then open `http://127.0.0.1:8134`.
 
 ## Run without the UI
 

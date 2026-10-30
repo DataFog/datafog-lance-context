@@ -1,8 +1,8 @@
-# Current main workflow: LanceDB enrichment
+# Current main workflow: Geneva enrichment
 
-As of October 30, 2026, the main site is a technical two-pane workbench. A local Python ingestion UDF reads six bundled fixture files and uses real Core scan findings to materialize has_PII and pii_types in a real temporary LanceDB table. Typed columns are added with add_columns and populated with merge_insert. The follow-on has_PII = false query returns actual selected IDs. The terminal displays results after successful execution; a pending or failed request never claims a completed run. No arbitrary files are uploaded or downloaded in this flow.
+The main site is a technical two-pane workbench. A real Geneva UDF adds `has_PII` and `pii_types` to an extracted-text table in R2. A real Ray backfill materializes the sibling outputs. The driver checks out the latest committed version before querying. A successful response requires every output to be non-null. Missing extracted text raises an error. The follow-on `has_PII = false` query returns actual selected IDs.
 
-The UI must not imply distributed Function registration, remote backfill, or certification that selected rows are PII-free. UDF source is drawn from the executed Python implementation. The Ingestion tab is an integration sketch for an existing file pipeline. The old export adapter's private staging and blocked-release rules remain in force for its CLI and API.
+The UI shows the actual UDF and registration/backfill source, job ID, status and table version. Pending and failed requests never claim success. Execution is labeled self-hosted Geneva; no managed Enterprise or auto-backfill claim is made. Public runs accept no arbitrary code or uploads. See [deployment plan](GENEVA_DEPLOYMENT.md) for the seven-day lifetime and cost bounds.
 
 ## Historical export-adapter contract
 
