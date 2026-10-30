@@ -4,7 +4,9 @@
 
 The main demo shows DataFog inside an MLE's existing document-to-training-row UDF. The function splits documents into training chunks and calls real Core `scan` before yielding each row. Its declared output includes `has_pii` and `pii_types` from the start.
 
-Click **Run ingestion**. Six new synthetic documents enter the source table. Geneva executes `prepare_training_rows` as a row-producing chunker UDF and writes the resulting training rows to a materialized Lance table in private R2 storage. Four rows are flagged; two have no selected patterns detected. There is no separate privacy UDF or privacy-column backfill.
+The page opens with the last saved, verified hosted result: six synthetic training rows, their PII flags, schema and actual job details. This static snapshot is bundled with the UI; opening or filtering the demo does not start compute. The terminal labels it **SAVED RESULT** and preserves the original elapsed time.
+
+**Run live ingestion** is optional. Six new synthetic documents enter the source table. Geneva executes `prepare_training_rows` as a row-producing chunker UDF and writes the resulting training rows to a materialized Lance table in private R2 storage. Four rows are flagged; two have no selected patterns detected. There is no separate privacy UDF or privacy-column backfill.
 
 The UI shows the ingestion UDF, its output schema and pipeline in one continuous view, with code that folds open in place, plus the real job result and a raw terminal table of the PII fields. **Apply filter** selects actual clean-pattern row keys, including chunk indices. A false flag only reflects the configured patterns. Public runs accept no uploads or arbitrary code.
 

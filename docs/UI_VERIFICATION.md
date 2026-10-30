@@ -1,5 +1,7 @@
 # Ingestion UI verification — October 30, 2026
 
+The page now starts with the bundled last verified hosted response, labeled SAVED RESULT, preserving its actual job ID and original recorded duration. All six rows and the two-row filter are available immediately after reload. The only ingestion fetch remains inside the optional Run live ingestion click handler. Pending and failed live attempts retain the previous result and identify it as previous; successful live output changes the label to LIVE RESULT. The live action uses secondary styling.
+
 The current demo runs DataFog inside the MLE's `prepare_training_rows` ingestion UDF. The real hosted API received six new source documents and wrote six annotated training rows to a derived Lance table in private R2 storage. Four rows were flagged; the real query selected doc_001:0 and doc_005:0. The raw captured response is in [hosted evidence](../cloudflare/geneva-verification.json).
 
 UDF, output schema and pipeline share one numbered sequence. Both code sections start folded and can be opened independently or together. The schema remains visible, with no tabs. Phone checks at 390px confirm no page overflow and both sections can remain open. The terminal renders actual row-level has_pii and pii_types values from the server response.

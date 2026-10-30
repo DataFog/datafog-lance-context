@@ -363,6 +363,13 @@ h2 {
   padding: 16px;
   border-top: 1px solid var(--line);
 }
+.live-action {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 .primary {
   background: var(--orange);
   color: var(--bg);

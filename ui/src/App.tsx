@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import implementation from "../../src/datafog_lance_context/geneva_enrichment.py?raw";
+import savedRun from "../../cloudflare/geneva-verification.json?raw";
 
 type Row = {
   asset_id: string;
@@ -31,28 +32,29 @@ type Result = {
 };
 const udf = implementation.slice(implementation.indexOf("class TrainingRow"), implementation.indexOf("\n\ndef ingest_training_data"));
 const pipeline = implementation.slice(implementation.indexOf("def ingest_training_data"), implementation.indexOf("\n\ndef run_geneva_enrichment"));
+const savedResult: Result = JSON.parse(savedRun);
 const query = `table.search() \\\n    .where("has_pii = false") \\\n    .to_arrow()`;
 export default function App() {
-  const [result, setResult] = useState<Result | null>(null),
+  const [result, setResult] = useState<Result | null>(savedResult),
+    [resultSource, setResultSource] = useState<"saved" | "live">("saved"),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [filtered, setFiltered] = useState(false);
   const terminal = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (terminal.current) terminal.current.scrollTop = terminal.current.scrollHeight;
-  }, [result, filtered, error]);
+    if (terminal.current) terminal.current.scrollTop = busy || error ? 0 : terminal.current.scrollHeight;
+  }, [result, filtered, error, busy]);
   async function run() {
     setBusy(true);
     setError("");
     setFiltered(false);
-    setResult(null);
     const runId = crypto.randomUUID();
     try {
       // A sleeping runtime can briefly return a proxy/startup error as it wakes.
       for (let attempt = 0; attempt < 3; attempt++) {
         const response = await fetch("/api/enrichment", { method: "POST", headers: {"Idempotency-Key": runId} });
         const body = await response.json().catch(() => null);
-        if (response.ok) { setResult(body); break; }
+        if (response.ok) { setResult(body); setResultSource("live"); break; }
         const starting = response.status === 503 || (response.status === 500 && !body);
         if (starting && attempt < 2) {
           await new Promise(resolve => setTimeout(resolve, 2000));
@@ -198,7 +200,7 @@ export default function App() {
               <b />
             </div>
             <span>cloudflare / geneva</span>
-            <span>{busy ? "RUNNING" : result ? "COMPLETE" : "READY"}</span>
+            <span>{busy ? "RUNNING LIVE" : resultSource === "saved" ? "SAVED RESULT" : "LIVE RESULT"}</span>
           </div>
           <div ref={terminal} className="terminal-body" role="log" aria-live="polite">
             <p className="command">
@@ -219,6 +221,7 @@ export default function App() {
             )}
             {result && (
               <>
+                {(busy || error) && <p className="muted">Previous successful run</p>}
                 <p className="muted">
                   geneva {result.versions.geneva} · lancedb {result.versions.lancedb} · datafog-core{" "}
                   {result.versions.datafog_core}
@@ -243,7 +246,7 @@ export default function App() {
                   {result.rows.length - result.flagged} rows with no selected
                   PII patterns detected
                 </p>
-                <p className="muted">Completed in {result.duration_ms} ms</p>
+                <p className="muted">{resultSource === "saved" ? "Recorded run" : "Completed in"} {result.duration_ms} ms</p>
                 {filtered && (
                   <>
                     <p className="command">&gt; WHERE has_pii = false</p>
@@ -258,11 +261,11 @@ export default function App() {
           </div>
           <div className="runbar">
             <button
-              className="primary"
+              className="secondary live-action"
               disabled={busy}
               onClick={() => void run()}
             >
-              {busy ? "Ingesting…" : result ? "Run again" : "Run ingestion"}
+              {busy ? "Ingesting…" : "Run live ingestion"}
               <span>↵</span>
             </button>
           </div>
