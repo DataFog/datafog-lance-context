@@ -18,7 +18,7 @@ export class LanceDemoContainer extends Container {
     if (await this.ctx.storage.get('generation') === generation) await this.destroy();
   }
   async fetch(request) {
-    if (this.running) return Response.json({error: {message: 'A backfill is running. Retry shortly.'}}, {status: 409});
+    if (this.running) return Response.json({error: {message: 'An ingestion run is active. Retry shortly.'}}, {status: 409});
     this.running = true;
     try {
       const accepted = await this.ctx.storage.transaction(async storage => {

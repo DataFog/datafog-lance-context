@@ -2,7 +2,7 @@
 
 ## Plan and acceptance
 
-Use a real Geneva UDF to add `has_PII` and `pii_types` to an extracted-text training table. Run a real asynchronous backfill, query its committed table version, and show the job ID, schema and result. Keep the approved heading and mobile layout. Verify the deployed endpoint and browser. Commit and push the source.
+Run DataFog inside the MLE's existing document-to-training-row UDF. Its output schema includes `has_pii` and `pii_types` before any row is emitted. Append a new source batch and use Geneva's chunker materialization to write training rows with those values filled in. Show the actual job, schema and table in the terminal and verify desktop/mobile. Commit, push and deploy.
 
 Compute is a single Cloudflare `standard-2` container (1 vCPU, 6 GiB RAM, 12 GB disk). Ray workers share that instance. Tables and Geneva metadata live in a dedicated private R2 bucket, not the container filesystem. This is self-hosted Geneva, not managed Enterprise. Enterprise auto-backfill is not claimed.
 
@@ -33,12 +33,8 @@ The small fixed fixture and run allowance should use far fewer than a million st
 
 ## Fidelity
 
-The input `text` column represents output from an existing extraction step. The PII UDF scans that column; it does not pretend to fetch arbitrary file formats. `source_uri` retains source lineage. Missing text raises an error rather than marking a row clean. Null or incomplete enrichment never yields a successful result. A false value means no configured pattern was detected, not proof that all sensitive content is absent.
+`prepare_training_rows` is the MLE-owned row preparation function. It splits document text into paragraphs, calls real Core scan on each prepared chunk, and yields a typed TrainingRow containing text and PII metadata together. Source identity and lineage columns are inherited by Geneva. There is no standalone DataFog column UDF and no later privacy backfill.
 
-Geneva's `Columns[NamedTuple]` registers two sibling columns. Backfilling the group's first column materializes both. After `job.result()`, `checkout_latest()` refreshes the driver to the committed version. The training selection explicitly filters `has_PII = false`; nulls do not qualify.
+The demo appends new source rows before creating the derived view. The installed SDK pins this query to a source version; refresh explicitly uses that batch version. It is a batch-snapshot ingestion example, not an automatic streaming subscription. The executed APIs are `create_udtf_view(..., udtf=prepare_training_rows)` and `refresh_async(src_version=source.version)`.
 
-Direct object-storage connections require an explicit backfill. Moving to Enterprise replaces connection and execution configuration with a managed service; it does not make this demo an Enterprise deployment.
-
-## Hosted evidence
-
-See [the captured hosted response](../cloudflare/geneva-verification.json). The first successful hosted run took 119,362 ms, materialized six rows in version 4, and returned DONE with four flagged rows. Plan a cut during the wait for a short recorded clip.
+Missing text fails. Missing fixture output or null metadata fails. The raw training text stays in private storage; public results contain only lineage and PII annotations. A false flag only means no configured pattern was detected. Filtering uses asset and chunk identity together.

@@ -3,9 +3,10 @@ import implementation from "../../src/datafog_lance_context/geneva_enrichment.py
 
 type Row = {
   asset_id: string;
+  chunk_index: number;
   source_uri: string;
   split: string;
-  has_PII: boolean;
+  has_pii: boolean;
   pii_types: string[];
 };
 type Result = {
@@ -16,6 +17,7 @@ type Result = {
   version: number;
   flagged: number;
   selected_ids: string[];
+  selected_keys: string[];
   duration_ms: number;
   versions: { lancedb: string; datafog_core: string; geneva: string };
   udf: string;
@@ -24,15 +26,16 @@ type Result = {
   job_status: string;
   table_name: string;
   pipeline: string;
+  output_schema: string;
+  input_rows: number;
 };
-const udf = implementation.slice(implementation.indexOf("class PIIColumns"), implementation.indexOf("\n\ndef register_and_backfill"));
-const pipeline = implementation.slice(implementation.indexOf("def register_and_backfill"), implementation.indexOf("\n\ndef run_geneva_enrichment"));
-const query = `table.search() \\\n    .where("has_PII = false") \\\n    .to_arrow()`;
+const udf = implementation.slice(implementation.indexOf("class TrainingRow"), implementation.indexOf("\n\ndef ingest_training_data"));
+const pipeline = implementation.slice(implementation.indexOf("def ingest_training_data"), implementation.indexOf("\n\ndef run_geneva_enrichment"));
+const query = `table.search() \\\n    .where("has_pii = false") \\\n    .to_arrow()`;
 export default function App() {
   const [result, setResult] = useState<Result | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [tab, setTab] = useState("UDF"),
     [filtered, setFiltered] = useState(false);
   const terminal = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -55,7 +58,7 @@ export default function App() {
           await new Promise(resolve => setTimeout(resolve, 2000));
           continue;
         }
-        throw Error(body?.error?.message || "Backfill failed. Retry the run.");
+        throw Error(body?.error?.message || "Ingestion failed. Retry the run.");
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Run failed. Retry.");
@@ -65,7 +68,7 @@ export default function App() {
   }
   const rows =
     result?.rows.filter(
-      (row) => !filtered || result.selected_ids.includes(row.asset_id),
+      (row) => !filtered || result.selected_keys.includes(`${row.asset_id}:${row.chunk_index}`),
     ) || [];
   return (
     <div className="workbench">
@@ -90,53 +93,36 @@ export default function App() {
         <div className="flow">
           <span>Files</span>
           <i>→</i>
-          <span>LanceDB table</span>
+          <span>MLE’s UDF + DataFog</span>
           <i>→</i>
-          <span className={result ? "done" : ""}>DataFog UDF</span>
+          <span className={result ? "done" : ""}>LanceDB table</span>
           <i>→</i>
           <span>Training selection</span>
         </div>
       </div>
       <main className="workspace">
         <section className="configuration" aria-label="UDF and table schema">
-          <div className="panel-heading">
-            <span>01 / DEFINE</span>
-            <span>Python</span>
+          <details className="code-step">
+          <summary className="panel-heading">
+            <span>01 / INGESTION UDF</span>
+            <span className="expand-icon" aria-hidden="true">+</span>
+          </summary>
+          <pre className="code"><code>{`from typing import Iterator, NamedTuple, Optional\nfrom geneva import chunker\nfrom datafog_core import scan\n\n${result?.udf || udf}`}</code></pre>
+          </details>
+          <div className="panel-heading flow-step">
+            <span>02 / OUTPUT SCHEMA</span>
+            <span>↓</span>
           </div>
-          <nav className="tabs" aria-label="Code views">
-            {["UDF", "Register & backfill", "Schema"].map((name) => (
-              <button
-                key={name}
-                aria-pressed={tab === name}
-                onClick={() => setTab(name)}
-              >
-                {name}
-              </button>
-            ))}
-          </nav>
-          <pre className="code">
-            <code>
-              {tab === "UDF"
-                ? `from typing import NamedTuple, Optional\nfrom geneva import Columns, udf\nfrom datafog_core import scan\n\n${result?.udf || udf}`
-                : tab === "Register & backfill"
-                  ? `# Existing extracted-text table in R2\n# db = geneva.connect("s3://…")\ntable = db.open_table("training_data")\n\n${result?.pipeline || pipeline}`
-                  : result?.schema ||
-                    "training_data\n  asset_id: string\n  source_uri: string\n  split: string\n  text: string\n\n+ has_PII: bool\n+ pii_types: list<string>"}
-            </code>
-          </pre>
-          <div className="schema-delta">
-            <span>NEW COLUMNS</span>
-            <div>
-              <code>has_PII</code>
-              <small>bool</small>
-            </div>
-            <div>
-              <code>pii_types</code>
-              <small>list&lt;string&gt;</small>
-            </div>
-          </div>
+          <pre className="code schema-code"><code>{result?.output_schema || "chunk_index: int64\ntext: string\nhas_pii: bool\npii_types: list<string>"}</code></pre>
+          <details className="code-step">
+          <summary className="panel-heading flow-step">
+            <span>03 / WRITE TO LANCEDB</span>
+            <span className="expand-icon" aria-hidden="true">+</span>
+          </summary>
+          <pre className="code pipeline-code"><code>{result?.pipeline || pipeline}</code></pre>
+          </details>
           <div className="table-heading">
-            <span>02 / MATERIALIZE</span>
+            <span>04 / INGESTED ROWS</span>
             <code>training_data {result ? `· v${result.version}` : ""}</code>
           </div>
           {!result ? (
@@ -144,7 +130,7 @@ export default function App() {
               <div>
                 asset_id <span>source_uri</span> split
               </div>
-              <p>Backfill the added columns.</p>
+              <p>Run the ingestion UDF.</p>
             </div>
           ) : (
             <div className="table-scroll">
@@ -152,18 +138,18 @@ export default function App() {
                 <thead>
                   <tr>
                     <th>asset_id</th>
-                    <th>has_PII</th>
+                    <th>has_pii</th>
                     <th>pii_types</th>
                     <th>source_uri</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((row) => (
-                    <tr key={row.asset_id}>
+                    <tr key={`${row.asset_id}:${row.chunk_index}`}>
                       <td>{row.asset_id}</td>
                       <td>
-                        <span className={row.has_PII ? "flag yes" : "flag no"}>
-                          {String(row.has_PII)}
+                        <span className={row.has_pii ? "flag yes" : "flag no"}>
+                          {String(row.has_pii)}
                         </span>
                       </td>
                       <td>
@@ -184,7 +170,7 @@ export default function App() {
           )}
           <div className="next-step">
             <div>
-              <span>03 / USE THE METADATA</span>
+              <span>05 / USE THE METADATA</span>
               <h2>Select a training subset</h2>
             </div>
             <pre>
@@ -216,14 +202,14 @@ export default function App() {
           </div>
           <div ref={terminal} className="terminal-body" role="log" aria-live="polite">
             <p className="command">
-              $ uv run python examples/backfill_training_table.py
+              $ uv run python examples/ingest_training_rows.py
             </p>
             {!result && !busy && !error && (
               <p className="muted">Self-hosted Geneva · R2 table</p>
             )}
             {busy && (
               <p className="pending">
-                Registering columns and running Geneva backfill…
+                Running the MLE’s ingestion UDF…
               </p>
             )}
             {error && (
@@ -238,14 +224,19 @@ export default function App() {
                   {result.versions.datafog_core}
                 </p>
                 <p>{result.execution}</p>
-                <p>Opened {result.table_name} · v{result.source_version}</p>
-                <pre>{result.source_schema}</pre>
-                <p className="success">+ has_PII: bool</p>
-                <p className="success">+ pii_types: list&lt;string&gt;</p>
-                <p>Registered detect_pii · datafog-core-0.5.0b3</p>
-                <p>Backfill job: {result.job_id}</p>
-                <p className="success">{result.job_status} · {result.rows.length} rows materialized</p>
-                <p>Committed enrichment · version {result.version}</p>
+                <p>Received {result.input_rows} new documents</p>
+                <p>Running prepare_training_rows · training-ingestion-v2</p>
+                <pre>{result.output_schema}</pre>
+                <p className="success">DataFog scan runs before each row is emitted</p>
+
+                <p>Writing {result.table_name}</p>
+                <p>Ingestion job: {result.job_id}</p>
+                <p className="success">{result.job_status} · {result.rows.length} rows inserted</p>
+                <p>Committed training rows · version {result.version}</p>
+                <pre>{[
+                  "row_id      has_pii  pii_types",
+                  ...result.rows.map(row => `${`${row.asset_id}:${row.chunk_index}`.padEnd(12)}${String(row.has_pii).padEnd(9)}${JSON.stringify(row.pii_types)}`),
+                ].join("\n")}</pre>
                 <hr />
                 <p>
                   {result.flagged} rows flagged ·{" "}
@@ -255,10 +246,10 @@ export default function App() {
                 <p className="muted">Completed in {result.duration_ms} ms</p>
                 {filtered && (
                   <>
-                    <p className="command">&gt; WHERE has_PII = false</p>
-                    <p>{result.selected_ids.join("\n")}</p>
+                    <p className="command">&gt; WHERE has_pii = false</p>
+                    <p>{result.selected_keys.join("\n")}</p>
                     <p className="success">
-                      {result.selected_ids.length} rows selected
+                      {result.selected_keys.length} rows selected
                     </p>
                   </>
                 )}
@@ -271,7 +262,7 @@ export default function App() {
               disabled={busy}
               onClick={() => void run()}
             >
-              {busy ? "Backfilling…" : result ? "Run again" : "Run backfill"}
+              {busy ? "Ingesting…" : result ? "Run again" : "Run ingestion"}
               <span>↵</span>
             </button>
           </div>

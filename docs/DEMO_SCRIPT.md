@@ -1,10 +1,11 @@
-# Geneva enrichment walkthrough
+# Ingestion UDF walkthrough
 
-1. Show the UDF definition, then **Register & backfill**. The displayed function is the executed implementation: `add_columns(detect_pii)`, `backfill_async("has_PII")`, `job.result()`, and `checkout_latest()`.
-2. Click **Run backfill**. Keep the real pending state visible. The hosted, R2-backed test took about two minutes on the budget instance; cut or speed up the wait in a recorded clip.
-3. Show the actual job ID, DONE status and committed table version. Switch to **Schema** to show the two added columns.
-4. Show the metadata table: six rows, four flagged. Apply the filter to show the two IDs returned by `has_PII = false`.
+1. Start at **01 / Ingestion UDF**: the MLE's `prepare_training_rows` function prepares chunks and calls DataFog before yielding each `TrainingRow`.
+2. Follow the same page to **02 / Output schema**: `has_pii` and `pii_types` are already declared alongside the training fields.
+3. Click **Run ingestion**. New documents enter the source table, and Geneva runs the existing row-producing UDF to write the derived training rows to R2-backed Lance storage.
+4. Show the actual terminal table: six output rows, four flagged. Inspect the same fields in the table below the code.
+5. Apply the filter to select the two chunk keys returned by the real query.
 
-This is self-hosted Geneva with a single-node Ray runtime in Cloudflare and tables in R2. It is not managed Enterprise or Enterprise auto-backfill. DataFog scans the existing extracted-text column. Source data is synthetic. No configured pattern detected is not proof that every kind of PII is absent.
+The hosted runtime processes a source batch snapshot using Geneva's chunker/materialized-view API. It is self-hosted, with an explicit refresh to execute ingestion, rather than managed Enterprise auto-refresh. DataFog is inside the ingestion UDF; it is not a second UDF applied to existing training rows. Cut the wait in a recorded clip if needed.
 
-The hosted allowance is 40 API requests through November 6, 2026. Startup retries and QA requests count toward it. No extra compute starts after expiry or exhaustion. Static pages and health checks do not start compute.
+The UDF, output schema and write step share one continuous sequence. UDF and pipeline code fold open independently; the schema and results stay visible. Both code sections start folded, and both can be opened together. There are no tabs.

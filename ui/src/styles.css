@@ -174,25 +174,6 @@ h1 {
 .panel-heading {
   border-bottom: 1px solid var(--line);
 }
-.tabs {
-  display: flex;
-  gap: 6px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--line);
-}
-.tabs button {
-  background: none;
-  color: var(--muted);
-  border: 0;
-  padding: 10px 16px;
-  min-height: 44px;
-  border-radius: 6px;
-  font-size: 13px;
-}
-.tabs button[aria-pressed="true"] {
-  background: var(--raised);
-  color: var(--text);
-}
 .code {
   padding: 24px 20px;
   font-size: 12px;
@@ -460,3 +441,31 @@ h2 {
     max-height: 650px;
   }
 }
+
+.flow-step {
+  border-top: 1px solid var(--line);
+}
+.schema-code, .pipeline-code {
+  min-height: 0;
+}
+.schema-code {
+  color: var(--lavender);
+}
+
+.code-step > summary {
+  cursor: pointer;
+  list-style: none;
+  min-height: 56px;
+  align-items: center;
+}
+.code-step > summary::-webkit-details-marker { display: none; }
+.code-step > summary:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: -3px;
+}
+.expand-icon {
+  font-size: 20px;
+  line-height: 1;
+  transition: transform 160ms ease;
+}
+.code-step[open] > summary .expand-icon { transform: rotate(45deg); }

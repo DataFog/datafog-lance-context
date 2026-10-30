@@ -1,10 +1,10 @@
-# Geneva UI verification — October 30, 2026
+# Ingestion UI verification — October 30, 2026
 
-The deployed endpoint completed a real R2-backed Geneva backfill with Core 0.5.0b3, Geneva 0.17.0 and LanceDB 0.41.0. Job b68b160a9e844d4aa3518f87ad6cf844 returned DONE; table version advanced from 1 to 4, with six materialized rows, four flagged, and doc_001/doc_005 returned by the training filter. A separate connection to R2 confirmed the committed annotations and no recorded errors. [Raw result](../cloudflare/geneva-verification.json).
+The current demo runs DataFog inside the MLE's `prepare_training_rows` ingestion UDF. The real hosted API received six new source documents and wrote six annotated training rows to a derived Lance table in private R2 storage. Four rows were flagged; the real query selected doc_001:0 and doc_005:0. The raw captured response is in [hosted evidence](../cloudflare/geneva-verification.json).
 
-The live run took 119,362 ms. The current UI shows the executed registration/backfill source. Phone viewport checks at 321px and 390px measured no page-width overflow; terminal controls precede code on phones. Actual output, schema and filter controls are checked in the deployed browser before handoff. Startup/proxy failures can retry automatically with the same run ID; completed results are reused while the runtime is alive; application failures and exhausted allowances do not report success.
+UDF, output schema and pipeline share one numbered sequence. Both code sections start folded and can be opened independently or together. The schema remains visible, with no tabs. Phone checks at 390px confirm no page overflow and both sections can remain open. The terminal renders actual row-level has_pii and pii_types values from the server response.
 
-Validation: 23 Python tests; 9 Worker tests, including conditional S3 commits, multipart copies, expiration, request allowance and hard-stop scheduling; TypeScript/Vite build. The package emits a Geneva/LanceDB compatibility warning for two methods not used by this flow. The actual methods used by the demo were exercised against R2.
+Validation: 23 Python tests, including positive/negative/missing/empty document inputs, multi-chunk outputs, schema creation before any training rows, and idempotent retries. Nine Worker tests cover the existing private storage transport and runtime budget. TypeScript/Vite build passes. A local real Ray ingestion run and hosted R2 ingestion run both pass. The installed Geneva SDK pins chunker views to a source snapshot; the pipeline explicitly refreshes that version.
 
 ## Historical UI verification
 

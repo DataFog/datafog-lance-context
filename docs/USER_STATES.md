@@ -1,14 +1,13 @@
-# Current enrichment states
+# Current ingestion states
 
-- Ready: UDF, actual registration/backfill code, planned schema fields, and an idle terminal. No results are claimed before execution.
-- Running: real POST /api/enrichment pending; duplicate runs disabled and prior results cleared. Startup retries keep the same run ID and reuse completed work.
-- Complete: actual typed table rows, schema, package versions, job ID, commit version, measured duration, and counts.
-- Filtered: rows selected by the real LanceDB has_PII = false query; Show all rows restores the full result.
-- Error: safe retry message, no success output; Run backfill retries.
+- Ready: MLE ingestion UDF, declared output schema and pipeline code in one sequence, with code folded in place and an idle terminal.
+- Running: POST /api/enrichment executes the row-producing UDF; duplicate clicks are disabled. Startup retries keep the same run ID.
+- Complete: real inserted training rows, lowercase has_pii and pii_types, output schema, job ID, version and elapsed time.
+- Filtered: actual selected asset_id:chunk_index keys. A flagged sibling chunk does not qualify because another chunk in the same document is clean.
+- Error: no completed output is published; retry is available.
+- Allowance ended: no new compute starts after expiry or request exhaustion.
 
-Desktop uses code/schema on the left and terminal on the right. At phone width, terminal controls appear first and code/schema follows. Wide tables scroll inside their container.
-
-- Allowance ended: an expired week or used run allowance returns a clear error without starting compute.
+Desktop uses code on the left and terminal on the right. Phone layouts put terminal controls first and keep wide tables inside their own scroll area. Heading and LanceDB styling stay unchanged.
 
 ## Historical export workflow
 

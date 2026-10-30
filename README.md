@@ -2,13 +2,15 @@
 
 [Live demo](https://datafog-lance-context.sid-5af.workers.dev/) · DataFog Core 0.5.0-beta.3 · LanceDB 0.41.0
 
-The main demo registers a real Geneva UDF, backfills `has_PII` and `pii_types`, and queries the committed Lance table. The table lives in a private Cloudflare R2 bucket. Ray workers run inside one Cloudflare container. This is self-hosted Geneva, not managed Enterprise.
+The main demo shows DataFog inside an MLE's existing document-to-training-row UDF. The function splits documents into training chunks and calls real Core `scan` before yielding each row. Its declared output includes `has_pii` and `pii_types` from the start.
 
-Click **Run backfill**. Six synthetic training assets yield four flagged rows and two rows with no configured PII patterns detected. **Apply filter** shows the IDs returned by the real `has_PII = false` query. The left pane shows the executed UDF, registration/backfill code and schema; the right shows the real job ID and result. Mobile stacks the panes.
+Click **Run ingestion**. Six new synthetic documents enter the source table. Geneva executes `prepare_training_rows` as a row-producing chunker UDF and writes the resulting training rows to a materialized Lance table in private R2 storage. Four rows are flagged; two have no selected patterns detected. There is no separate privacy UDF or privacy-column backfill.
 
-The input `text` column represents an existing extraction pipeline. DataFog scans this column and preserves the original content. A negative flag only reflects the selected patterns. Public runs accept no uploads or arbitrary code. The hosted demo permits 40 runs across seven days; health and static page requests do not start compute. See [deployment plan and cost estimate](docs/GENEVA_DEPLOYMENT.md).
+The UI shows the ingestion UDF, its output schema and pipeline in one continuous view, with code that folds open in place, plus the real job result and a raw terminal table of the PII fields. **Apply filter** selects actual clean-pattern row keys, including chunk indices. A false flag only reflects the configured patterns. Public runs accept no uploads or arbitrary code.
 
-The previous lance-context export adapter remains available locally through its CLI and API. Its immutable public samples remain downloadable. Hosted API access is restricted to the new fixed-fixture backfill.
+This is self-hosted Geneva on a single Cloudflare Ray runtime, with R2-backed tables. Each run processes a source batch snapshot; it does not claim Enterprise auto-refresh. The existing weekly request and runtime limits remain in place. See [deployment plan](docs/GENEVA_DEPLOYMENT.md).
+
+The older lance-context export adapter remains available locally through its CLI and API. Its immutable public samples remain downloadable.
 
 ## Run locally
 

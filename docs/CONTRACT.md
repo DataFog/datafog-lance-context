@@ -1,8 +1,10 @@
-# Current main workflow: Geneva enrichment
+# Current main workflow: DataFog inside the ingestion UDF
 
-The main site is a technical two-pane workbench. A real Geneva UDF adds `has_PII` and `pii_types` to an extracted-text table in R2. A real Ray backfill materializes the sibling outputs. The driver checks out the latest committed version before querying. A successful response requires every output to be non-null. Missing extracted text raises an error. The follow-on `has_PII = false` query returns actual selected IDs.
+The MLE's document-to-row UDF prepares training chunks and scans each chunk with DataFog before emitting a row. Its output schema declares text, chunk_index, has_pii and pii_types. Geneva's row-producing chunker API materializes these outputs in a training table in R2, inheriting source lineage columns. This is one ingestion UDF; there is no separately registered privacy-column UDF or privacy backfill.
 
-The UI shows the actual UDF and registration/backfill source, job ID, status and table version. Pending and failed requests never claim success. Execution is labeled self-hosted Geneva; no managed Enterprise or auto-backfill claim is made. Public runs accept no arbitrary code or uploads. See [deployment plan](GENEVA_DEPLOYMENT.md) for the seven-day lifetime and cost bounds.
+A run appends six new synthetic source documents, creates a derived training table for that source batch snapshot, runs the UDF, waits for its refresh job, and queries the committed output. Missing input raises. Missing output for any fixture or null privacy metadata fails the run. The UI uses chunk-level keys for filtering, so a clean chunk cannot accidentally select a flagged sibling from the same document.
+
+The terminal shows actual output schema, job ID, row annotations and committed version. Pending and failed requests never claim completion. Self-hosted execution, fixed fixtures, private storage, cache/retry rules and weekly cost bounds remain as documented in [deployment plan](GENEVA_DEPLOYMENT.md).
 
 ## Historical export-adapter contract
 
