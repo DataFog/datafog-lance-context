@@ -17,7 +17,7 @@ Sources:
 - https://developers.cloudflare.com/r2/pricing/
 - https://developers.cloudflare.com/durable-objects/platform/pricing/
 
-The hosted demo permits 40 requests across the week. The counter is stored in its Durable Object and counts failed starts too. A container sleeps one minute after activity and is forcibly stopped ten minutes after each start. Even if every request causes a separate start, runtime is at most 400 minutes (6 hours 40 minutes). New compute requests are rejected after the configured seven-day expiry. Health checks and static pages do not start containers.
+The hosted demo permits 40 requests across the week. The counter is stored in its Durable Object and counts failed starts too. A container sleeps three minutes after activity. Every accepted request reserves a ten-minute runtime window, including startup, and schedules a forced stop. A later request renews the window; callbacks for older windows cannot stop a newer run. The union of 40 windows is at most 400 minutes (6 hours 40 minutes). New compute requests are rejected after the configured seven-day expiry. Health checks and static pages do not start containers.
 
 | Item | Estimate without shared free allowances |
 | --- | ---: |
@@ -29,7 +29,7 @@ The hosted demo permits 40 requests across the week. The counter is stored in it
 | Workers, Durable Objects, registry and test-run allowance | $1.00 |
 | Total estimated added cost | **$6.74** |
 
-The small fixed fixture and run allowance should use far fewer than a million storage requests. Shared R2 free allowances may make storage requests free. Expected actual added cost is below this conservative estimate. This is an estimate, not a provider-enforced dollar cap. No new subscription is purchased. The public run allowance includes hosted QA runs.
+The small fixed fixture and run allowance should use far fewer than a million storage requests. Shared R2 free allowances may make storage requests free. Expected actual added cost is below this conservative estimate. This is an estimate, not a provider-enforced dollar cap. No new subscription is purchased. The public run allowance includes hosted QA runs and startup retries. Retries carry the same idempotency key: while the runtime remains alive, they wait for and reuse the original completed result instead of launching another backfill. The in-memory result cache holds at most 40 runs.
 
 ## Fidelity
 

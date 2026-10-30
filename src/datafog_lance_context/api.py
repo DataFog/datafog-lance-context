@@ -31,6 +31,7 @@ class RunRequest(BaseModel):
 def create_app(store: DemoStore | None = None) -> FastAPI:
     app = FastAPI(title="DataFog × Lance Context", docs_url=None, redoc_url=None)
     app.state.store = store or DemoStore()
+    app.state.enrichment_results = {}
 
     @app.exception_handler(DemoError)
     async def demo_error(_: Request, error: DemoError) -> JSONResponse:
@@ -60,11 +61,21 @@ def create_app(store: DemoStore | None = None) -> FastAPI:
         }}
 
     @app.post("/api/enrichment")
-    def enrichment() -> dict[str, Any]:
+    def enrichment(request: Request) -> dict[str, Any]:
+        run_id = request.headers.get("Idempotency-Key")
+        if run_id and len(run_id) > 64:
+            raise DemoError("invalid_run_id", "The run ID is too long.", 400)
         from .enrichment import RUN_LOCK
         with RUN_LOCK:
+            if run_id and run_id in app.state.enrichment_results:
+                return app.state.enrichment_results[run_id]
             from .geneva_enrichment import run_geneva_enrichment
-            return run_geneva_enrichment()
+            result = run_geneva_enrichment()
+            if run_id:
+                if len(app.state.enrichment_results) >= 40:
+                    del app.state.enrichment_results[next(iter(app.state.enrichment_results))]
+                app.state.enrichment_results[run_id] = result
+            return result
 
     @app.get("/api/sample")
     def sample() -> FileResponse:

@@ -6,12 +6,12 @@ import {r2S3} from './r2-s3.js';
 export class LanceDemoContainer extends Container {
   defaultPort = 8080;
   enableInternet = false;
-  sleepAfter = '1m';
+  sleepAfter = '3m';
   envVars = {GENEVA_DATABASE_URI: 's3://datafog-lance-geneva-demo/lance', GENEVA_STORAGE_ENDPOINT: 'http://r2.internal', AWS_EC2_METADATA_DISABLED: 'true', RAY_USAGE_STATS_ENABLED: '0', OPENBLAS_NUM_THREADS: '1', OMP_NUM_THREADS: '1'};
-  async onStart() {
+  async startBudgetWindow() {
     const generation = crypto.randomUUID();
     await this.ctx.storage.put('generation', generation);
-    // Forty starts of at most ten minutes bound container compute to 6h40m.
+    // Each accepted request buys at most ten minutes, including startup.
     await this.schedule(600, 'stopForBudget', generation);
   }
   async stopForBudget(generation) {
@@ -28,6 +28,7 @@ export class LanceDemoContainer extends Container {
         return true;
       });
       if (!accepted) return Response.json({error: {message: 'This week’s demo run allowance has ended.'}}, {status: 429});
+      await this.startBudgetWindow();
       return await super.fetch(request);
     } finally { this.running = false; }
   }

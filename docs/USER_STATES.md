@@ -1,7 +1,7 @@
 # Current enrichment states
 
 - Ready: UDF, actual registration/backfill code, planned schema fields, and an idle terminal. No results are claimed before execution.
-- Running: real POST /api/enrichment pending; duplicate runs disabled and prior results cleared.
+- Running: real POST /api/enrichment pending; duplicate runs disabled and prior results cleared. Startup retries keep the same run ID and reuse completed work.
 - Complete: actual typed table rows, schema, package versions, job ID, commit version, measured duration, and counts.
 - Filtered: rows selected by the real LanceDB has_PII = false query; Show all rows restores the full result.
 - Error: safe retry message, no success output; Run backfill retries.

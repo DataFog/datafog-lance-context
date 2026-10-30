@@ -30,11 +30,13 @@ test('expired and exhausted allowances never start additional compute', async ()
   assert.equal(demo.starts, 40);
 });
 
-test('each wake schedules a hard stop and old callbacks cannot stop a new wake', async () => {
+test('each request schedules a hard stop and old callbacks cannot stop a new run', async () => {
   const demo = engine();
-  await demo.onStart();
+  await demo.fetch(new Request('https://demo/api/enrichment'));
   assert.equal(demo.scheduled[0], 600);
-  await demo.stopForBudget('old-wake');
+  const previous = demo.scheduled[2];
+  await demo.fetch(new Request('https://demo/api/enrichment'));
+  await demo.stopForBudget(previous);
   assert.equal(demo.destroyed, undefined);
   await demo.stopForBudget(demo.scheduled[2]);
   assert.equal(demo.destroyed, true);

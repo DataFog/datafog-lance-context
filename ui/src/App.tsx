@@ -43,10 +43,11 @@ export default function App() {
     setError("");
     setFiltered(false);
     setResult(null);
+    const runId = crypto.randomUUID();
     try {
       // A sleeping runtime can briefly return a proxy/startup error as it wakes.
       for (let attempt = 0; attempt < 3; attempt++) {
-        const response = await fetch("/api/enrichment", { method: "POST" });
+        const response = await fetch("/api/enrichment", { method: "POST", headers: {"Idempotency-Key": runId} });
         const body = await response.json().catch(() => null);
         if (response.ok) { setResult(body); break; }
         const starting = response.status === 503 || (response.status === 500 && !body);
