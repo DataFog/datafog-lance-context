@@ -1,3 +1,11 @@
+# Current main workflow: LanceDB enrichment
+
+As of October 30, 2026, the main site is a technical two-pane workbench. A local Python ingestion UDF reads six bundled fixture files and uses real Core scan findings to materialize has_PII and pii_types in a real temporary LanceDB table. Typed columns are added with add_columns and populated with merge_insert. The follow-on has_PII = false query returns actual selected IDs. The terminal displays results after successful execution; a pending or failed request never claims a completed run. No arbitrary files are uploaded or downloaded in this flow.
+
+The UI must not imply distributed Function registration, remote backfill, or certification that selected rows are PII-free. UDF source is drawn from the executed Python implementation. The Ingestion tab is an integration sketch for an existing file pipeline. The old export adapter's private staging and blocked-release rules remain in force for its CLI and API.
+
+## Historical export-adapter contract
+
 # Demo contract
 
 Build a real, open-source, publicly reachable demo using lance-context and DataFog Core. A public, immutable synthetic JSONL download must work without authentication and can be dropped into the demo. Cloudflare Workers AI generates the narrative; deterministic, labeled synthetic identifiers provide known expected cases. Cache/save the generated fixture; downloading it must not run inference.
