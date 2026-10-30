@@ -1,0 +1,26 @@
+{
+  "verified_at_utc": "2026-10-30T17:05:04.959173+00:00",
+  "url": "https://datafog-lance-context.sid-5af.workers.dev/",
+  "source_commit": "c956a7c",
+  "worker_version": "8c03b0e6-15b6-4332-8257-9c504d71fa36",
+  "container_image": "sha256:46ac1eee2d76ad577e0d622eb3ad7cc24465ef11124c3dee672284b58ce6a2b1",
+  "container_application_version": 3,
+  "versions": {
+    "lancedb": "0.41.0",
+    "datafog_core": "0.5.0b3"
+  },
+  "files": 6,
+  "flagged": 4,
+  "selected_ids": [
+    "doc_001",
+    "doc_005"
+  ],
+  "checks": {
+    "native_python_tests": 20,
+    "live_api_schema_and_query": true,
+    "live_browser_run_and_filter": true,
+    "mobile_321px_no_page_overflow": true,
+    "mobile_table_scrolls_within_pane": true
+  },
+  "scope": "Local Python ingestion UDF, actual local LanceDB table, actual DataFog scanning. No distributed Function registration or remote backfill claimed."
+}
