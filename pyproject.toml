@@ -13,6 +13,7 @@ dependencies = [
   "lance-context==0.6.5",
   "fastapi==0.162.0",
   "uvicorn==0.54.0",
+  "lancedb==0.41.0",
 ]
 
 [project.optional-dependencies]

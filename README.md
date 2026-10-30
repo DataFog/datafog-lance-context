@@ -1,30 +1,20 @@
-# DataFog and Lance context
+# PII Enrichment for LanceDB
 
-Turn agent conversations into a privacy-reviewed training cut using real **lance-context** and **DataFog Core**. Review the text, inspect metadata rules, and download a completed training release with a receipt.
+[Live demo](https://datafog-lance-context.sid-5af.workers.dev/) · DataFog Core 0.5.0-beta.3 · LanceDB 0.41.0
 
-- [Live demo](https://datafog-lance-context.sid-5af.workers.dev)
-- [Download the synthetic sample](https://datafog-lance-context.sid-5af.workers.dev/samples/support-conversations-v1.jsonl)
-- [Independent static sample endpoint](https://datafog-lance-context-generator.sid-5af.workers.dev/samples/support-conversations-v1.jsonl)
-- [Generation provenance](https://datafog-lance-context-generator.sid-5af.workers.dev/samples/generation-provenance-v1.json)
-- [Known injected test cases](https://datafog-lance-context-generator.sid-5af.workers.dev/samples/ground-truth-v1.json)
+The main demo shows file ingestion, a Python DataFog enrichment UDF, schema evolution, and a follow-on training-data filter. The left pane shows code and table metadata; the right pane reports the real local execution. Mobile stacks the panes.
 
-This is a community export adapter. It implements a focused privacy workflow inspired by the enrichment hooks deferred in [lance-context #96](https://github.com/lance-format/lance-context/issues/96) and [PR #111](https://github.com/lance-format/lance-context/pull/111).
+Click **Run enrichment** to create a temporary LanceDB table from six bundled source files, scan each file with Core, and materialize `has_PII` and `pii_types`. Four fixture rows contain selected PII patterns; two do not. **Apply filter** displays the IDs returned by the real LanceDB query `has_PII = false`.
 
-## Use the demo
+This is a local Python ingestion UDF followed by `add_columns` and `merge_insert`. It does not claim to register a distributed or Enterprise UDF. Inputs are synthetic, source content is not transformed, and a negative flag only reflects the selected detector patterns. No user files are uploaded in this workflow.
 
-The screen follows five steps: **Source → Original → DataFog → Cleaned → Download**.
+Run the same implementation locally:
 
-1. **Source.** The app preloads the public **Support conversations** sample into memory and shows its filename, JSONL format, conversation and message counts, and **Ready to review** status. **Start demo** imports that file into real Lance. **Upload another JSONL** and a saved custom-file action provide other source choices. Optional **Save source file** and browser-cache controls are in **File options**. Dropping a JSONL file or the published sample URL onto the app also works.
-2. **Original.** Read the source conversations exactly as imported into lance-context. The rules button sets the data types to remove; the default covers emails, phones, US Social Security numbers, and credit-card patterns, and keeps the public support address as an exact exception.
-3. **Redact PII.** Core runs on the export. When the real response arrives, each detected value lights up in place, then turns into its replacement token.
-4. **Cleaned.** Switch between Original and Cleaned to compare. On wide screens both columns show side by side.
-5. **Download.** Get the training JSONL, privacy receipt, or ZIP bundle.
+```sh
+uv run python examples/enrich_training_table.py
+```
 
-Changing a rule marks the result out of date until you rerun. **Test blocked run** in the rules menu intentionally exercises a processing failure; that run cannot download a release.
-
-Preloading keeps the public sample in memory; it does not write browser storage or create a Lance dataset. Downloading or importing a source saves its content, filename, and saved date in browser storage. A later visit can reimport a saved custom file into a fresh backend session; the public sample stays the default source. The trash button clears the app's saved copy and current workspace, while the public sample remains available. Files already saved in your computer's Downloads folder are managed by your browser or operating system.
-
-**Use synthetic data only on the public demo.** Uploaded text is sent to this demo's Python server. It is never sent to Workers AI. The backend's temporary state can expire; the browser source cache remains until removed. Run locally to evaluate your own data under your own controls.
+The previous lance-context export adapter remains available through its CLI and API. The sections below document that adapter and its immutable sample assets; the current web UI is the enrichment workflow described above.
 
 ## Run locally
 

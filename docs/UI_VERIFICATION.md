@@ -1,3 +1,11 @@
+# Enrichment UI verification — October 30, 2026
+
+The current main UI replaces the conversation export walkthrough. Local checks exercised real enrichment (6 files, 4 flagged rows, 2 selected IDs), filter/show-all controls, typed schema, and terminal output. At a measured 321px width, the panes stack, the page has no horizontal overflow, and the Run enrichment control is 48px high. Desktop uses two columns. The Python suite passes 20 tests, including the new native-table integration tests.
+
+The terminal reports local execution in the hosted container. No distributed LanceDB Function registration or remote backfill is claimed.
+
+## Historical UI verification
+
 # UI verification
 
 ## Mobile controls regression

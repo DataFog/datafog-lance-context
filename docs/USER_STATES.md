@@ -1,3 +1,15 @@
+# Current enrichment states
+
+- Ready: UDF, ingestion integration sketch, planned schema fields, and an idle terminal. No results are claimed before execution.
+- Running: real POST /api/enrichment pending; duplicate runs disabled and prior results cleared.
+- Complete: actual typed table rows, schema, package versions, commit version, measured duration, and counts.
+- Filtered: rows selected by the real LanceDB has_PII = false query; Show all rows restores the full result.
+- Error: safe retry message, no success output; Run enrichment retries.
+
+Desktop uses code/schema on the left and terminal on the right. At phone width, terminal controls appear first and code/schema follows. Wide tables scroll inside their container.
+
+## Historical export workflow
+
 # User states and recovery
 
 Map the states this demo can actually reach. Keep this table aligned with UI/API behavior.

@@ -59,6 +59,12 @@ def create_app(store: DemoStore | None = None) -> FastAPI:
             "temporary_state": True, "synthetic_data_only": True,
         }}
 
+    @app.post("/api/enrichment")
+    def enrichment() -> dict[str, Any]:
+        from .enrichment import RUN_LOCK, run_enrichment
+        with RUN_LOCK:
+            return run_enrichment()
+
     @app.get("/api/sample")
     def sample() -> FileResponse:
         root = Path(__file__).resolve().parents[2]
