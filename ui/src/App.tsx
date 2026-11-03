@@ -4,8 +4,14 @@ import savedRun from "../../cloudflare/geneva-verification.json?raw";
 type Row = { asset_id: string; chunk_index: number; split: string; has_pii: boolean; pii_types: string[] };
 type Result = { rows: Row[]; flagged: number; selected_keys: string[]; table_name: string; version: number; job_id: string; udf: string; pipeline: string };
 const savedResult: Result = JSON.parse(savedRun);
-const titles = ["Today", "With DataFog", "Select rows for training"];
-type Filter = "all" | "clean" | "flagged";
+const titles = ["Introduction", "With DataFog", "Select rows for training"];
+type Filter = "all" | "clean" | "flagged" | "email";
+const predicates: Record<Filter, string | null> = {
+  all: null,
+  clean: "has_pii = false",
+  flagged: "has_pii = true",
+  email: "array_contains(pii_types, 'EMAIL')",
+};
 
 function Code({ text }: { text: string }) {
   return <pre><code>{text.split("\n").map((line, i) => <span key={i} className={/scan\(|has_pii|pii_types|from datafog/.test(line) ? "added-line" : ""}>{line || " "}</span>)}</code></pre>;
@@ -49,9 +55,9 @@ export default function App() {
   }
   const added = slide === 1 && stage >= 2;
   const code = [added ? "from datafog_core import scan\n" : "", "@chunker(version=\"training-ingestion-v2\", num_cpus=0.25)", "def prepare_training_rows(raw_text):", "    # …prepare training chunks…", ...(added ? ["    findings = scan(text, {\"entities\":", "        [\"EMAIL\", \"PHONE\", \"SSN\", \"CREDIT_CARD\"]})"] : []), "    yield TrainingRow(", "        chunk_index=chunk_index,", "        text=text,", ...(added ? ["        has_pii=bool(findings),", "        pii_types=sorted({", "            item.entity_type for item in findings", "        }),"] : []), "    )"].join("\n").trim();
-  const selected = {...result, rows: result.rows.filter(row => filter === "all" || (filter === "clean" ? result.selected_keys.includes(`${row.asset_id}:${row.chunk_index}`) : row.has_pii))};
+  const selected = {...result, rows: result.rows.filter(row => filter === "all" || (filter === "clean" ? result.selected_keys.includes(`${row.asset_id}:${row.chunk_index}`) : filter === "email" ? row.pii_types.includes("EMAIL") : row.has_pii))};
   function downloadManifest() {
-    const manifest = {table_name: result.table_name, version: result.version, job_id: result.job_id, filter: filter === "all" ? null : `has_pii = ${filter === "clean" ? "false" : "true"}`, rows: selected.rows};
+    const manifest = {table_name: result.table_name, version: result.version, job_id: result.job_id, filter: predicates[filter], rows: selected.rows};
     const url = URL.createObjectURL(new Blob([JSON.stringify(manifest, null, 2)], {type: "application/json"}));
     const link = document.createElement("a");
     link.href = url; link.download = "training-batch-manifest.json"; link.click();
@@ -60,8 +66,9 @@ export default function App() {
   return <div className="page">
     <header className="brandbar"><a href="https://www.lancedb.com/" aria-label="LanceDB"><img alt="LanceDB" src="https://cdn.prod.website-files.com/69a866b324926425eccc4cf5/69ab0db86188576e86d098f7_c1b5a4653a6fa4cc4b2ff7641e1276b1_lanceDB_logo.avif"/></a><span>× DataFog</span></header>
     <h1>PII Enrichment for LanceDB</h1>
-    <main><section className={`slide slide-${slide}`} key={slide} aria-labelledby="slide-title">
-      <div className="slide-heading"><span className="step-number">0{slide + 1}</span><h2 id="slide-title">{titles[slide]}</h2></div>
+    <main><section className={`slide slide-${slide}`} key={slide} aria-labelledby={slide > 0 ? "slide-title" : undefined} aria-label={slide === 0 ? "Introduction" : undefined}>
+      {slide > 0 && <div className="slide-heading"><h2 id="slide-title">{titles[slide]}</h2></div>}
+      {slide === 0 && <p className="intro">DataFog detects PII in text. This demo shows how it can run inside a LanceDB ingestion UDF to help researchers select training data.</p>}
       {slide < 2 && <>
         <div className={`workflow stage-${stage}`}>
           <div className="code-panel"><div className="panel-label">Ingestion UDF</div><Code text={code}/>
@@ -72,7 +79,7 @@ export default function App() {
         </div>
         <div className="action-row"><button className="text-button" onClick={() => setReplay(value => value + 1)}>Replay animation</button></div>
       </>}
-      {slide === 2 && <><div className="filters" role="group" aria-label="Filter training rows">{([["all", "All rows"], ["clean", "No PII detected"], ["flagged", "PII detected"]] as const).map(([value, label]) => <button key={value} aria-pressed={filter === value} onClick={() => setFilter(value)}>{label}</button>)}</div><div className="query"><code>{`training.search()${filter === "all" ? "" : `.where(\"has_pii = ${filter === "clean" ? "false" : "true"}\")`}`}</code></div><TrainingTable result={selected} enriched/><div className="action-row"><button className="primary" onClick={downloadManifest}>Download batch manifest</button></div><div className="implementation-tools"><details><summary>Full implementation</summary><Code text={`from typing import Iterator, NamedTuple, Optional\nfrom geneva import chunker\nfrom datafog_core import scan\n\n${result.udf}\n\n${result.pipeline}`}/></details></div></>}
+      {slide === 2 && <><div className="filters" role="group" aria-label="Filter training rows">{([["all", "All rows"], ["clean", "No PII detected"], ["flagged", "PII detected"], ["email", "Email"]] as const).map(([value, label]) => <button key={value} aria-pressed={filter === value} onClick={() => setFilter(value)}>{label}</button>)}</div><div className="query"><code>{`training.search()${predicates[filter] ? `.where("${predicates[filter]}")` : ""}`}</code></div><TrainingTable result={selected} enriched/><div className="action-row"><button className="primary" onClick={downloadManifest}>Download batch manifest</button></div><div className="implementation-tools"><details><summary>Full implementation</summary><Code text={`from typing import Iterator, NamedTuple, Optional\nfrom geneva import chunker\nfrom datafog_core import scan\n\n${result.udf}\n\n${result.pipeline}`}/></details></div></>}
     </section></main>
     <nav className="slide-nav" aria-label="Slides"><button className="nav-button" disabled={slide === 0} onClick={() => setSlide(value => value - 1)} aria-label="Previous slide">←</button><div className="progress">{titles.map((title, i) => <button key={title} aria-label={`Slide ${i + 1}: ${title}`} aria-current={i === slide ? "step" : undefined} onClick={() => setSlide(i)}><span/></button>)}</div><button className="nav-button next" onClick={next}>{slide === 2 ? "Restart" : "Next"}<span aria-hidden="true">→</span></button></nav>
   </div>;
