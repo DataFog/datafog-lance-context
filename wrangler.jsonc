@@ -26,6 +26,10 @@
       {
         "name": "DEMO",
         "class_name": "LanceDemoContainer"
+      },
+      {
+        "name": "CAMPAIGN_VISITS",
+        "class_name": "CampaignVisits"
       }
     ]
   },
@@ -34,6 +38,12 @@
       "tag": "v1",
       "new_sqlite_classes": [
         "LanceDemoContainer"
+      ]
+    },
+    {
+      "tag": "v2-campaign-visits",
+      "new_sqlite_classes": [
+        "CampaignVisits"
       ]
     }
   ],

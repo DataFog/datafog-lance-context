@@ -1,3 +1,5 @@
+import {handleVisits} from './visits.js';
+export {CampaignVisits} from './visits.js';
 import {Container} from '@cloudflare/containers';
 export {ContainerProxy} from '@cloudflare/containers';
 import {boundApiRequest} from './request-body.js';
@@ -61,6 +63,7 @@ function unavailable() {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === '/api/visit' || url.pathname === '/api/visits') return handleVisits(request, env);
     if (url.pathname.startsWith('/samples/')) {
       if (request.method === 'OPTIONS') return new Response(null, {headers: {'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS'}});
       if (!SAMPLE_FILES.has(url.pathname)) return new Response('Sample not found', {status: 404});

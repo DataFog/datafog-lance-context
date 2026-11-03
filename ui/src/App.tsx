@@ -32,6 +32,16 @@ export default function App() {
   const [filter, setFilter] = useState<Filter>("clean");
   const result = savedResult;
   useEffect(() => {
+    const campaign = new URLSearchParams(window.location.search).get("ref");
+    if (campaign !== "lancedb-email" && campaign !== "qa") return;
+    const event = slide === 0 ? "visit" : "engaged";
+    const key = `demo:${campaign}:${event}`;
+    try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, "1"); } catch { return; }
+    void fetch("/api/visit", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({campaign, event}), keepalive: true})
+      .then(response => { if (!response.ok) sessionStorage.removeItem(key); })
+      .catch(() => { try { sessionStorage.removeItem(key); } catch { /* Tracking must not interrupt the demo. */ } });
+  }, [slide]);
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).closest("button, a, input, textarea, select, summary")) return;
       if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
